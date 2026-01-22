@@ -2,276 +2,173 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Qibla Compass</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Qibla Map Test</title>
+
   <style>
-    :root { --bg:#0b1220; --card:#111b30; --text:#e9eefc; --muted:#a9b6d3; --accent:#60a5fa; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background: var(--bg); color: var(--text); }
-    header { padding: 14px 14px 10px; }
-    h1 { margin:0; font-size: 18px; letter-spacing:.3px; }
-    .muted { color: var(--muted); font-size: 13px; margin-top: 4px; line-height: 1.35; }
-    .wrap { padding: 0 14px 14px; display: grid; gap: 12px; }
-    .card { background: var(--card); border: 1px solid rgba(255,255,255,.06); border-radius: 16px; padding: 12px; }
-    #map { width: 100%; height: 46vh; border-radius: 14px; overflow:hidden; }
-    .row { display:flex; gap:10px; flex-wrap: wrap; align-items:center; }
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    #map { height: 100%; width: 100%; }
+    .panel {
+      position: fixed; left: 12px; top: 12px; z-index: 9999;
+      background: rgba(255,255,255,.95); border: 1px solid #ddd; border-radius: 12px;
+      padding: 10px 12px; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    }
+    .panel b { display:block; margin-bottom:6px; }
+    .row { display:flex; gap:8px; flex-wrap: wrap; }
     button {
-      appearance:none; border:0; border-radius: 12px; padding: 10px 12px;
-      background: var(--accent); color: #06111f; font-weight: 700; cursor:pointer;
+      border: 1px solid #ccc; background: #fff; border-radius: 10px;
+      padding: 8px 10px; cursor: pointer;
     }
-    button.secondary { background: rgba(255,255,255,.10); color: var(--text); font-weight: 600; }
-    .pill { padding: 8px 10px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 13px; }
-    .big { font-size: 22px; font-weight: 800; }
-    .arrowBox { display:flex; align-items:center; gap: 12px; }
-    .arrow {
-      width: 64px; height: 64px; border-radius: 16px;
-      background: rgba(255,255,255,.08);
-      display:grid; place-items:center;
-      border: 1px solid rgba(255,255,255,.07);
-    }
-    .arrow svg { width: 44px; height: 44px; transform-origin: 50% 50%; }
-    .status { font-size: 13px; color: var(--muted); line-height: 1.35; }
-    .warn { color: #ffd08a; }
-    code { background: rgba(0,0,0,.25); padding: 2px 6px; border-radius: 8px; }
+    button:hover { background:#f6f6f6; }
+    #status { margin-top:8px; font-size: 12px; white-space: pre-wrap; }
+    .ok { color: #0a7a0a; }
+    .bad { color: #b00020; }
+    .hint { color:#333; opacity:.9; }
   </style>
 </head>
 
 <body>
-  <header>
-    <h1>🧭 Qibla Compass</h1>
-    <div class="muted">
-      Harita + Kıble yönü. iPhone’da pusula için butona basıp izin ver.
+  <div class="panel">
+    <b>Google Maps Test</b>
+    <div class="row">
+      <button onclick="tryGeolocate()">📍 Konum al</button>
+      <button onclick="centerToSide()">🧭 Side</button>
+      <button onclick="showConsoleHint()">ℹ️ Hata nasıl bakılır?</button>
     </div>
-  </header>
-
-  <div class="wrap">
-    <div class="card">
-      <div class="row" style="justify-content:space-between;">
-        <div class="arrowBox">
-          <div class="arrow" aria-label="Qibla Arrow">
-            <svg id="arrowSvg" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2l6 10-6-2-6 2 6-10z" fill="white" opacity=".95"/>
-              <path d="M12 10v12" stroke="white" stroke-width="2" stroke-linecap="round" opacity=".9"/>
-            </svg>
-          </div>
-          <div>
-            <div class="big" id="qiblaDeg">--°</div>
-            <div class="status">Kıble açısı (kuzeye göre)</div>
-          </div>
-        </div>
-
-        <div class="row">
-          <button id="btnLocate">Konum Al</button>
-          <button id="btnCompass" class="secondary">Pusulayı Aç (iPhone)</button>
-        </div>
-      </div>
-
-      <div style="margin-top:10px;" class="row">
-        <div class="pill" id="latlng">📍 Konum: --</div>
-        <div class="pill" id="heading">🧭 Telefon yönü: --</div>
-        <div class="pill" id="err" style="display:none;">⚠️</div>
-      </div>
-
-      <div class="status" style="margin-top:10px;">
-        Not: Harita görünmüyorsa en sık sebep <span class="warn">HTTP referrer kısıtı</span> ve site adresinin eşleşmemesi.
-      </div>
-    </div>
-
-    <div class="card">
-      <div id="map"></div>
-    </div>
+    <div id="status" class="hint">Yükleniyor...</div>
   </div>
 
+  <div id="map"></div>
+
   <script>
-    // ✅ SADECE BURAYA API KEY’İNİ YAPIŞTIR
-    const API_KEY = "YOUR_API_KEY_HERE";
+    // 1) BURAYA API KEY'İNİ YAPIŞTIR
+    const API_KEY = AIzaSyDjjTLQSqrvhjuG6N22cP7MiOdnvYZiSUQ;
 
-    // Kaabe koordinatı
-    const KAABA = { lat: 21.422487, lng: 39.826206 };
-
-    // Google Maps objeleri
-    let map, userMarker, kaabaMarker, qiblaLine;
-    let userPos = null;
-
-    // Pusula state
-    let deviceHeading = null; // 0..360 (kuzey=0)
-    let qiblaBearing = null;  // 0..360 (kuzey=0)
-
-    function setErr(msg) {
-      const el = document.getElementById("err");
-      if (!msg) { el.style.display="none"; el.textContent=""; return; }
-      el.style.display="inline-block";
-      el.textContent = "⚠️ " + msg;
-      el.classList.add("warn");
+    // 2) Basit durum yazıcısı
+    const statusEl = document.getElementById("status");
+    function setStatus(msg, ok=false){
+      statusEl.className = ok ? "ok" : "bad";
+      statusEl.textContent = msg;
+    }
+    function setHint(msg){
+      statusEl.className = "hint";
+      statusEl.textContent = msg;
     }
 
-    // Bearing (kuzeye göre) hesapla: kullanıcı -> Kaabe
-    function bearingDeg(from, to) {
-      const φ1 = from.lat * Math.PI/180;
-      const φ2 = to.lat   * Math.PI/180;
-      const Δλ = (to.lng - from.lng) * Math.PI/180;
-
-      const y = Math.sin(Δλ) * Math.cos(φ2);
-      const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
-      let θ = Math.atan2(y, x) * 180/Math.PI;
-      θ = (θ + 360) % 360;
-      return θ;
-    }
-
-    function updateUI() {
-      // Qibla text
-      document.getElementById("qiblaDeg").textContent =
-        qiblaBearing == null ? "--°" : `${Math.round(qiblaBearing)}°`;
-
-      // LatLng pill
-      document.getElementById("latlng").textContent =
-        userPos ? `📍 Konum: ${userPos.lat.toFixed(6)}, ${userPos.lng.toFixed(6)}` : "📍 Konum: --";
-
-      // Heading pill
-      document.getElementById("heading").textContent =
-        deviceHeading == null ? "🧭 Telefon yönü: --" : `🧭 Telefon yönü: ${Math.round(deviceHeading)}°`;
-
-      // Arrow rotate:
-      // Ekrandaki okun "Kaabe yönünü" göstermesi için:
-      // ok = (qiblaBearing - deviceHeading)
-      const arrow = document.getElementById("arrowSvg");
-      if (qiblaBearing == null) {
-        arrow.style.transform = "rotate(0deg)";
+    // 3) Güvenlik: HTTPS değilse Maps bazen sapıtıyor
+    (function checkHttps(){
+      if (location.protocol !== "https:" && location.hostname !== "localhost") {
+        setStatus("⚠️ Bu sayfa HTTPS değil.\nGitHub Pages üzerinden açmalısın.\nÖrn: https://hakan0778.github.io/qibla/", false);
       } else {
-        const rel = deviceHeading == null ? qiblaBearing : (qiblaBearing - deviceHeading + 360) % 360;
-        arrow.style.transform = `rotate(${rel}deg)`;
+        setHint("✅ Sayfa HTTPS. Şimdi Maps scripti yükleniyor...");
       }
-    }
+    })();
 
-    function drawOnMap() {
-      if (!map || !userPos) return;
-
-      // Markerlar
-      if (!userMarker) {
-        userMarker = new google.maps.Marker({
-          map,
-          position: userPos,
-          title: "Senin konumun"
-        });
-      } else {
-        userMarker.setPosition(userPos);
-      }
-
-      if (!kaabaMarker) {
-        kaabaMarker = new google.maps.Marker({
-          map,
-          position: KAABA,
-          title: "Kâbe (Mekke)"
-        });
-      }
-
-      // Çizgi
-      const path = [userPos, KAABA];
-      if (!qiblaLine) {
-        qiblaLine = new google.maps.Polyline({
-          map,
-          path,
-          geodesic: true,
-          strokeOpacity: 0.9,
-          strokeWeight: 3
-        });
-      } else {
-        qiblaLine.setPath(path);
-      }
-
-      // Map center
-      map.panTo(userPos);
-    }
-
-    // Konum al
-    async function locate() {
-      setErr("");
-      if (!navigator.geolocation) {
-        setErr("Tarayıcı konumu desteklemiyor.");
+    // 4) Google Maps scriptini dinamik ekle (API key boşsa hemen yakalar)
+    (function loadMaps(){
+      if (!API_KEY || API_KEY === "YOUR_API_KEY_HERE") {
+        setStatus("❌ API_KEY boş.\nYOUR_API_KEY_HERE yazan yere kendi key’ini yapıştır.", false);
         return;
       }
+
+      // Scripti ekle
+      const s = document.createElement("script");
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(API_KEY)}&v=weekly&callback=initMap`;
+      s.async = true;
+      s.defer = true;
+
+      s.onerror = () => {
+        setStatus("❌ Google Maps script yüklenemedi.\n- Key yanlış olabilir\n- Restriction (Website) hatalı olabilir\n- Billing bağlı değilse hata verebilir\nDetay için Console'a bak.", false);
+      };
+
+      document.head.appendChild(s);
+    })();
+
+    // 5) Maps init
+    let map, marker;
+
+    window.initMap = function initMap() {
+      try {
+        // Side (Antalya) yakınları default
+        const side = { lat: 36.7667, lng: 31.3886 };
+
+        map = new google.maps.Map(document.getElementById("map"), {
+          center: side,
+          zoom: 12,
+          mapTypeControl: false,
+          fullscreenControl: true,
+          streetViewControl: false
+        });
+
+        marker = new google.maps.Marker({ position: side, map, title: "Side" });
+
+        setStatus("✅ Harita yüklendi! Şimdi 'Konum al' ile test et.", true);
+
+        // Hata yakalama: Google Maps bazen auth hatasını console'a basar
+        window.gm_authFailure = function() {
+          setStatus(
+            "❌ gm_authFailure: API KEY yetkisiz.\n" +
+            "ÇÖZÜM:\n" +
+            "1) Google Cloud > Credentials > API Key\n" +
+            "2) Application restrictions: Websites\n" +
+            "   - https://hakan0778.github.io/* (veya) https://hakan0778.github.io/qibla/*\n" +
+            "3) API restrictions: Sadece 'Maps JavaScript API' seçili olsun\n" +
+            "4) Billing proje bağlı olmalı",
+            false
+          );
+        };
+
+      } catch (e) {
+        setStatus("❌ initMap içinde hata:\n" + (e?.message || e), false);
+      }
+    };
+
+    // 6) Konum al (opsiyonel)
+    function tryGeolocate(){
+      if (!navigator.geolocation) {
+        setStatus("❌ Bu cihaz konum desteklemiyor.", false);
+        return;
+      }
+      setHint("📍 Konum isteniyor... (izin ver)");
+
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          qiblaBearing = bearingDeg(userPos, KAABA);
-          if (map) drawOnMap();
-          updateUI();
+          const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          if (map) {
+            map.setCenter(p);
+            map.setZoom(15);
+            marker.setPosition(p);
+            marker.setTitle("Konumun");
+            setStatus("✅ Konum alındı ve harita ortalandı.", true);
+          } else {
+            setStatus("⚠️ Harita yok ama konum geldi: " + JSON.stringify(p), false);
+          }
         },
         (err) => {
-          setErr("Konum izni verilmedi veya alınamadı. iPhone: Ayarlar > Safari > Konum.");
+          setStatus("❌ Konum hatası:\n" + err.message, false);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
       );
     }
 
-    // iOS pusula izni
-    async function enableCompass() {
-      setErr("");
-      try {
-        // iOS 13+ permission flow
-        if (typeof DeviceOrientationEvent !== "undefined" &&
-            typeof DeviceOrientationEvent.requestPermission === "function") {
-          const resp = await DeviceOrientationEvent.requestPermission();
-          if (resp !== "granted") {
-            setErr("Pusula izni verilmedi (Motion & Orientation).");
-            return;
-          }
-        }
-
-        window.addEventListener("deviceorientation", (e) => {
-          // iOS Safari: webkitCompassHeading (0..360, kuzey=0)
-          if (typeof e.webkitCompassHeading === "number") {
-            deviceHeading = e.webkitCompassHeading;
-          } else if (typeof e.alpha === "number") {
-            // Android/diğer: alpha genelde pusula değil ama yine de gösterelim
-            deviceHeading = (360 - e.alpha) % 360;
-          }
-          updateUI();
-        }, true);
-
-        setErr("Pusula aktif ✅ Telefonu düz tut, biraz hareket ettir.");
-      } catch {
-        setErr("Pusula açılamadı. iPhone: Ayarlar > Safari > Motion & Orientation Access.");
-      }
+    function centerToSide(){
+      const side = { lat: 36.7667, lng: 31.3886 };
+      if (!map) { setStatus("⚠️ Harita henüz yüklenmedi.", false); return; }
+      map.setCenter(side);
+      map.setZoom(12);
+      marker.setPosition(side);
+      marker.setTitle("Side");
+      setStatus("✅ Side'a döndüm.", true);
     }
 
-    // Google Maps init (callback)
-    window.initMap = function () {
-      // Default center: Mekke (konum gelene kadar)
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: KAABA,
-        zoom: 4,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: true
-      });
-
-      kaabaMarker = new google.maps.Marker({
-        map,
-        position: KAABA,
-        title: "Kâbe (Mekke)"
-      });
-
-      updateUI();
-    };
-
-    // UI hooks
-    document.getElementById("btnLocate").addEventListener("click", locate);
-    document.getElementById("btnCompass").addEventListener("click", enableCompass);
-
-    // Load Maps JS (dinamik)
-    (function loadMaps() {
-      if (!API_KEY || API_KEY.includes(AIzaSyDjjTLQSqrvhjuG6N22cP7MiOdnvYZiSUQ)) {
-        setErr("API key eklemen lazım. index.html içinde API_KEY alanına yapıştır.");
-        return;
-      }
-      const s = document.createElement("script");
-      s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(API_KEY)}&callback=initMap`;
-      s.async = true;
-      s.defer = true;
-      s.onerror = () => setErr("Google Maps script yüklenmedi. (Key/Referrer/Billing/API enable kontrol)");
-      document.head.appendChild(s);
-    })();
+    function showConsoleHint(){
+      setHint(
+        "Console aç:\n" +
+        "- PC Chrome: F12 > Console\n" +
+        "- Safari iPhone: Ayarlar > Safari > Gelişmiş > Web Denetçisi\n" +
+        "Eğer hata varsa ekran görüntüsü at."
+      );
+    }
   </script>
 </body>
 </html>
