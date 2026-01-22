@@ -1,59 +1,162 @@
 <!doctype html>
-<html>
+<html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Qibla</title>
   <style>
-    html, body { margin:0; height:100%; background:#000; overflow:hidden; }
-    .wrap { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:system-ui; padding:16px; box-sizing:border-box; }
+    :root{
+      --bg:#07090f;
+      --card:#0e1324;
+      --line:rgba(255,255,255,.10);
+      --accent:#ff7a18;
+      --blue:#3b82f6;
+      --warn:#ffcc66;
+      --text:#eaf0ff;
+      --muted:rgba(234,240,255,.75);
+    }
 
-    /* START BUTTON */
-    .topbar { width:100%; max-width:420px; display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
-    .btn {
-      width:100%;
-      padding:14px 16px;
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+    body { overflow:hidden; }
+
+    /* Safe-area padding for iPhone notch */
+    .app {
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      padding: calc(12px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+      box-sizing:border-box;
+      gap:12px;
+      max-width:520px;
+      margin:0 auto;
+    }
+
+    .top {
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .row { display:flex; gap:10px; align-items:center; }
+    .btn{
+      flex:1;
+      padding:12px 14px;
       border-radius:14px;
       border:0;
-      background:#3b82f6;
-      color:#fff;
+      background:var(--blue);
+      color:white;
       font-weight:800;
-      font-size:16px;
+      font-size:15px;
       cursor:pointer;
     }
-    .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
-    .ring { width:min(280px, 80vw); aspect-ratio:1/1; border:2px solid #a85a1a; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center; }
-    .label { position:absolute; opacity:.7; font-weight:600; font-size:14px; }
-    .n { top:10px; color:#ff7a18; opacity:1; } .e { right:14px; } .s { bottom:10px; } .w { left:14px; }
-    .center { width:6px; height:6px; background:#ff7a18; border-radius:50%; position:absolute; }
-    .arrow { width:6px; height:110px; background:#ff7a18; border-radius:6px; transform-origin:50% 90%; transition:transform .18s ease-out; }
-    .kaaba { position:absolute; transform:translateY(-120px); font-size:18px; }
-    .txt { margin-top:14px; opacity:.9; font-size:14px; }
-    .warn { color:#ffcc66; margin-top:10px; font-size:14px; text-align:center; max-width:420px; }
-    .mini { opacity:.75; font-size:12px; line-height:1.35; }
+    .chip{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      font-weight:700;
+      font-size:13px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .hint{ font-size:12.5px; color:var(--muted); line-height:1.35; }
+
+    .mid{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:0;
+    }
+
+    .ring {
+      width:min(320px, 82vw);
+      aspect-ratio:1/1;
+      border:2px solid rgba(168,90,26,.85);
+      border-radius:50%;
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:radial-gradient(circle at 30% 30%, rgba(255,122,24,.18), rgba(255,255,255,.02) 45%, rgba(0,0,0,.35));
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+
+    .label { position:absolute; opacity:.75; font-weight:800; font-size:14px; letter-spacing:.5px; }
+    .n { top:10px; color:var(--accent); opacity:1; }
+    .e { right:14px; }
+    .s { bottom:10px; }
+    .w { left:14px; }
+
+    .center { width:8px; height:8px; background:var(--accent); border-radius:50%; position:absolute; box-shadow:0 0 18px rgba(255,122,24,.55); }
+
+    .arrow {
+      width:7px;
+      height:126px;
+      background:var(--accent);
+      border-radius:10px;
+      transform-origin:50% 90%;
+      transition:transform .16s ease-out;
+      box-shadow:0 10px 18px rgba(0,0,0,.35);
+    }
+
+    .kaaba {
+      position:absolute;
+      transform:translateY(-138px);
+      font-size:20px;
+      filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
+    }
+
+    .bottom{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .txt { font-size:14px; }
+    .warn { color:var(--warn); font-size:13px; line-height:1.35; }
+    .ok { color:#86efac; }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="app">
 
-    <!-- TOP BAR / START BUTTON -->
-    <div class="topbar">
-      <button id="startBtn" class="btn">Başlat (Sensör İzni)</button>
-      <div class="mini">
-        iPhone’da pusula için izin, sadece bu butona bastıktan sonra çalışır.
+    <div class="top">
+      <div class="row">
+        <button id="startBtn" class="btn">Başlat (Sensör İzni)</button>
+        <div id="stateChip" class="chip">Bekliyor…</div>
+      </div>
+      <div class="hint">
+        iPhone’da pusula sensörü sadece <b>butona bastıktan sonra</b> açılır. (Apple kuralı)
       </div>
     </div>
 
-    <div class="ring">
-      <div class="label n">N</div><div class="label e">E</div><div class="label s">S</div><div class="label w">W</div>
-      <div class="center"></div>
-      <div id="arrow" class="arrow"></div>
-      <div id="kaaba" class="kaaba">🕋</div>
+    <div class="mid">
+      <div class="ring">
+        <div class="label n">N</div><div class="label e">E</div><div class="label s">S</div><div class="label w">W</div>
+        <div class="center"></div>
+        <div id="arrow" class="arrow"></div>
+        <div id="kaaba" class="kaaba">🕋</div>
+      </div>
     </div>
 
-    <div id="bearingTxt" class="txt">Kıble: --°</div>
-    <div id="warn" class="warn"></div>
+    <div class="bottom">
+      <div id="bearingTxt" class="txt">Kıble: --°</div>
+      <div id="warn" class="warn"></div>
+      <div class="hint">İpucu: Doğru ölçüm için telefonu düz tut, metal/pusula etkisi yapabilecek şeylerden uzak dur.</div>
+    </div>
+
   </div>
 
 <script>
@@ -63,9 +166,15 @@
   const arrow = document.getElementById('arrow');
   const kaaba = document.getElementById('kaaba');
   const startBtn = document.getElementById('startBtn');
+  const stateChip = document.getElementById('stateChip');
 
   let qiblaBearing = null;
   let compassStarted = false;
+
+  function setState(t, ok=false){
+    stateChip.textContent = t;
+    stateChip.classList.toggle('ok', ok);
+  }
 
   function bearingToKaaba(lat, lon) {
     const φ1 = lat * Math.PI/180, λ1 = lon * Math.PI/180;
@@ -75,42 +184,38 @@
     return (θ + 360) % 360;
   }
 
-  // --- LOCATION ---
   function requestLocation() {
     warn.textContent = 'Konum isteniyor...';
+    setState('Konum…');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         qiblaBearing = bearingToKaaba(pos.coords.latitude, pos.coords.longitude);
         bearingTxt.textContent = `Kıble: ${Math.round(qiblaBearing)}°`;
-        warn.textContent = compassStarted ? '' : 'Şimdi “Başlat (Sensör İzni)” butonuna basın.';
+        warn.textContent = compassStarted ? '' : 'Şimdi “Başlat (Sensör İzni)” butonuna bas.';
+        setState(compassStarted ? 'Hazır ✅' : 'Konum hazır ✅', true);
       },
       () => {
-        warn.textContent = 'Konum izni verin (Safari: Ayarlar > Gizlilik > Konum).';
+        warn.textContent = 'Konum izni verin. (iPhone: Ayarlar > Gizlilik ve Güvenlik > Konum Servisleri)';
+        setState('Konum yok');
       },
       { enableHighAccuracy:true, timeout:10000 }
     );
   }
 
-  // --- SMOOTH ROTATION ---
+  // Smooth rotation
   let smooth = 0;
   function setRotation(deg) {
     smooth = smooth + 0.18 * (deg - smooth);
     arrow.style.transform = `rotate(${smooth}deg)`;
-    kaaba.style.transform = `translateY(-120px) rotate(${smooth}deg)`;
+    kaaba.style.transform = `translateY(-138px) rotate(${smooth}deg)`;
   }
 
   function handleOrientation(e) {
     if (qiblaBearing == null) return;
 
     let heading = null;
-
-    // iOS Safari: the best source
-    if (typeof e.webkitCompassHeading === 'number') {
-      heading = e.webkitCompassHeading;
-    } else if (typeof e.alpha === 'number') {
-      // fallback
-      heading = 360 - e.alpha;
-    }
+    if (typeof e.webkitCompassHeading === 'number') heading = e.webkitCompassHeading;   // iOS best
+    else if (typeof e.alpha === 'number') heading = 360 - e.alpha;                      // fallback
 
     if (heading == null) return;
 
@@ -118,41 +223,40 @@
     setRotation(rotateDeg);
   }
 
-  // --- COMPASS INIT (MUST BE ON USER CLICK FOR iOS) ---
   async function startCompass() {
     compassStarted = false;
+    setState('İzin…');
 
-    // iOS 13+ permission gate
+    // iOS permission must be requested on user gesture
     if (typeof DeviceOrientationEvent !== 'undefined' &&
         typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         const p = await DeviceOrientationEvent.requestPermission();
         if (p !== 'granted') {
           warn.textContent = 'Pusula izni verilmedi. iPhone: Ayarlar > Safari > Hareket ve Yön Erişimi açık olmalı.';
+          setState('İzin yok');
           return;
         }
-      } catch (err) {
+      } catch {
         warn.textContent = 'Pusula izni alınamadı. Safari sensör erişimi kapalı olabilir.';
+        setState('İzin yok');
         return;
       }
     }
 
-    // start listening
     window.addEventListener('deviceorientation', handleOrientation, true);
     compassStarted = true;
 
-    // UI
     startBtn.disabled = true;
     startBtn.textContent = 'Sensör Açık ✅';
     warn.textContent = (qiblaBearing == null)
-      ? 'Konum izni gerekli. Lütfen konum izni verin.'
+      ? 'Konum izni gerekli. Lütfen konum izni ver.'
       : '';
+
+    setState('Çalışıyor ✅', true);
   }
 
-  // Button click is the key on iPhone
   startBtn.addEventListener('click', startCompass);
-
-  // Start by requesting location (can be requested without button)
   requestLocation();
 </script>
 </body>
