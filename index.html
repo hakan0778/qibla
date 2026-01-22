@@ -17,7 +17,6 @@
       --text:#f3f4f6;
       --muted:rgba(243,244,246,.72);
       --warn:#fbbf24;
-      --blue:#2563eb;
     }
 
     html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; }
@@ -81,7 +80,7 @@
       border-radius:14px;
       border:1px solid rgba(255,255,255,.10);
       background:rgba(0,0,0,.25);
-      font-weight:800;
+      font-weight:900;
       font-size:13px;
       color:var(--muted);
       white-space:nowrap;
@@ -90,9 +89,23 @@
 
     .hint{ font-size:12.5px; color:var(--muted); line-height:1.35; }
 
+    /* Countdown pill */
+    .count{
+      display:none;
+      margin-top:2px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(214,178,94,.22);
+      background:rgba(0,0,0,.22);
+      font-weight:900;
+      color:rgba(255,221,138,.95);
+      letter-spacing:.3px;
+      text-align:center;
+    }
+    .count.show{ display:block; }
+
     .mid{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
 
-    /* Compass ring */
     .ring{
       width:min(340px, 86vw);
       aspect-ratio:1/1;
@@ -101,13 +114,11 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(214,178,94,.18), rgba(255,255,255,.03) 45%, rgba(0,0,0,.50));
+      background:radial-gradient(circle at 30% 30%, rgba(214,178,94,.18), rgba(255,255,255,.03) 45%, rgba(0,0,0,.50));
       border:1px solid rgba(214,178,94,.35);
       box-shadow: 0 25px 70px rgba(0,0,0,.55);
       overflow:hidden;
     }
-    /* Inner subtle ticks */
     .ring:before{
       content:"";
       position:absolute; inset:10%;
@@ -148,7 +159,6 @@
       z-index:6;
     }
 
-    /* ROTATING GROUP: the whole needle + qibla arrowhead rotates together */
     .rot{
       position:absolute;
       left:50%; top:50%;
@@ -159,7 +169,6 @@
       z-index:5;
     }
 
-    /* Needle body (centered) */
     .needle{
       position:absolute;
       left:50%; top:50%;
@@ -170,7 +179,6 @@
       background:linear-gradient(180deg, rgba(255,221,138,.95), rgba(214,178,94,.25));
       box-shadow:0 16px 25px rgba(0,0,0,.45);
     }
-    /* Needle tail (a small dark tail below center) */
     .needle:after{
       content:"";
       position:absolute;
@@ -185,19 +193,16 @@
       box-shadow:0 10px 18px rgba(0,0,0,.55);
     }
 
-    /* Qibla arrowhead (Kaaba direction) - perfect arrow */
     .qHead{
       position:absolute;
       left:50%; top:50%;
       width:0; height:0;
       transform:translate(-50%,-165px);
-      /* arrow head triangle */
       border-left:16px solid transparent;
       border-right:16px solid transparent;
       border-bottom:34px solid rgba(34,197,94,.95);
       filter:drop-shadow(0 10px 14px rgba(0,0,0,.55));
     }
-    /* small gold outline behind green head */
     .qHead:before{
       content:"";
       position:absolute;
@@ -210,7 +215,6 @@
       z-index:-1;
     }
 
-    /* Kaaba icon on arrowhead */
     .kaaba{
       position:absolute;
       left:50%; top:50%;
@@ -230,9 +234,26 @@
       gap:6px;
       box-shadow:0 18px 50px rgba(0,0,0,.35);
       backdrop-filter: blur(10px);
+      position:relative;
+      overflow:hidden;
     }
-    .txt{ font-size:14px; font-weight:800; letter-spacing:.2px; }
-    .warn{ color:var(--warn); font-size:13px; line-height:1.35; }
+
+    /* Decorative bottom stripe */
+    .bottom:before{
+      content:"";
+      position:absolute; left:-20%; right:-20%; bottom:-22px; height:70px;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(214,178,94,.25), transparent 55%),
+        radial-gradient(circle at 80% 40%, rgba(34,197,94,.18), transparent 60%),
+        linear-gradient(90deg, rgba(214,178,94,.22), rgba(255,221,138,.10), rgba(34,197,94,.12));
+      transform:skewX(-10deg);
+      opacity:.55;
+      pointer-events:none;
+    }
+
+    .txt{ font-size:14px; font-weight:900; letter-spacing:.2px; position:relative; z-index:1; }
+    .warn{ color:var(--warn); font-size:13px; line-height:1.35; position:relative; z-index:1; }
+    .hint2{ font-size:12.5px; color:var(--muted); line-height:1.35; position:relative; z-index:1; }
   </style>
 </head>
 
@@ -244,6 +265,7 @@
         <button id="startBtn" class="btn">Başlat (Sensör İzni)</button>
         <div id="stateChip" class="chip">Bekliyor…</div>
       </div>
+      <div id="countdown" class="count">Yön belirleniyor… 5</div>
       <div class="hint">
         iPhone’da pusula sensörü sadece <b>butona bastıktan sonra</b> açılır.
       </div>
@@ -255,7 +277,6 @@
 
         <div class="centerDot"></div>
 
-        <!-- Rotating group -->
         <div id="rot" class="rot">
           <div class="needle"></div>
           <div class="qHead"></div>
@@ -267,7 +288,7 @@
     <div class="bottom">
       <div id="bearingTxt" class="txt">Kıble: --°</div>
       <div id="warn" class="warn"></div>
-      <div class="hint">İpucu: En doğru ölçüm için telefonu düz tut, metal/ mıknatıs etkisi yapabilecek şeylerden uzak dur.</div>
+      <div class="hint2">İpucu: En doğru ölçüm için telefonu düz tut, metal/ mıknatıs etkisi yapabilecek şeylerden uzak dur.</div>
     </div>
 
   </div>
@@ -279,13 +300,42 @@
   const rot = document.getElementById('rot');
   const startBtn = document.getElementById('startBtn');
   const stateChip = document.getElementById('stateChip');
+  const countdownEl = document.getElementById('countdown');
 
   let qiblaBearing = null;
   let compassStarted = false;
 
+  // countdown state
+  let countdownTimer = null;
+  let countdownValue = 0;
+
   function setState(t, ok=false){
     stateChip.textContent = t;
     stateChip.classList.toggle('ok', ok);
+  }
+
+  function showCountdown(){
+    // Start from 5
+    clearInterval(countdownTimer);
+    countdownValue = 5;
+    countdownEl.textContent = `Yön belirleniyor… ${countdownValue}`;
+    countdownEl.classList.add('show');
+
+    countdownTimer = setInterval(() => {
+      countdownValue -= 1;
+      if (countdownValue <= 0){
+        clearInterval(countdownTimer);
+        // If we are not ready yet, keep a calm message
+        countdownEl.textContent = 'Yön belirleniyor…';
+        return;
+      }
+      countdownEl.textContent = `Yön belirleniyor… ${countdownValue}`;
+    }, 1000);
+  }
+
+  function hideCountdown(){
+    clearInterval(countdownTimer);
+    countdownEl.classList.remove('show');
   }
 
   function bearingToKaaba(lat, lon) {
@@ -305,6 +355,9 @@
         bearingTxt.textContent = `Kıble: ${Math.round(qiblaBearing)}°`;
         warn.textContent = compassStarted ? '' : 'Şimdi “Başlat (Sensör İzni)” butonuna bas.';
         setState(compassStarted ? 'Hazır ✅' : 'Konum hazır ✅', true);
+
+        // If compass already started, we can show countdown to reassure
+        if (compassStarted) showCountdown();
       },
       () => {
         warn.textContent = 'Konum izni verin. (iPhone: Ayarlar > Gizlilik ve Güvenlik > Konum Servisleri)';
@@ -321,11 +374,13 @@
     rot.style.transform = `translate(-50%,-50%) rotate(${smooth}deg)`;
   }
 
+  // When we first get a reliable heading, we stop countdown
+  let gotFirstHeading = false;
+
   function handleOrientation(e) {
     if (qiblaBearing == null) return;
 
     let heading = null;
-    // iOS best
     if (typeof e.webkitCompassHeading === 'number') heading = e.webkitCompassHeading;
     else if (typeof e.alpha === 'number') heading = 360 - e.alpha;
 
@@ -333,22 +388,35 @@
 
     const rotateDeg = (qiblaBearing - heading + 360) % 360;
     setRotation(rotateDeg);
+
+    if (!gotFirstHeading){
+      gotFirstHeading = true;
+      hideCountdown();
+      setState('Çalışıyor ✅', true);
+      warn.textContent = '';
+    }
   }
 
   async function startCompass() {
+    gotFirstHeading = false;
     compassStarted = false;
     setState('İzin…');
+
+    // Start countdown immediately to reassure user
+    showCountdown();
 
     if (typeof DeviceOrientationEvent !== 'undefined' &&
         typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         const p = await DeviceOrientationEvent.requestPermission();
         if (p !== 'granted') {
+          hideCountdown();
           warn.textContent = 'Pusula izni verilmedi. iPhone: Ayarlar > Safari > Hareket ve Yön Erişimi açık olmalı.';
           setState('İzin yok');
           return;
         }
       } catch {
+        hideCountdown();
         warn.textContent = 'Pusula izni alınamadı. Safari sensör erişimi kapalı olabilir.';
         setState('İzin yok');
         return;
@@ -360,8 +428,13 @@
 
     startBtn.disabled = true;
     startBtn.textContent = 'Sensör Açık ✅';
-    warn.textContent = (qiblaBearing == null) ? 'Konum izni gerekli. Lütfen konum izni ver.' : '';
-    setState('Çalışıyor ✅', true);
+
+    // if location not ready, keep a friendly message
+    warn.textContent = (qiblaBearing == null)
+      ? 'Konum izni gerekli. Lütfen konum izni ver.'
+      : 'Yön belirleniyor…';
+
+    setState('Başlatıldı…');
   }
 
   startBtn.addEventListener('click', startCompass);
