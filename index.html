@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Qibla</title>
+  <style>
+    html, body { margin:0; height:100%; background:#000; overflow:hidden; }
+    .wrap { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:system-ui; }
+    .ring { width:min(280px, 80vw); aspect-ratio:1/1; border:2px solid #a85a1a; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center; }
+    .label { position:absolute; opacity:.7; font-weight:600; font-size:14px; }
+    .n { top:10px; color:#ff7a18; opacity:1; } .e { right:14px; } .s { bottom:10px; } .w { left:14px; }
+    .center { width:6px; height:6px; background:#ff7a18; border-radius:50%; position:absolute; }
+    .arrow { width:6px; height:110px; background:#ff7a18; border-radius:6px; transform-origin:50% 90%; transition:transform .18s ease-out; }
+    .kaaba { position:absolute; transform:translateY(-120px); font-size:18px; }
+    .txt { margin-top:14px; opacity:.9; font-size:14px; }
+    .warn { color:#ffcc66; margin-top:10px; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="ring">
+      <div class="label n">N</div><div class="label e">E</div><div class="label s">S</div><div class="label w">W</div>
+      <div class="center"></div>
+      <div id="arrow" class="arrow"></div>
+      <div id="kaaba" class="kaaba">🕋</div>
+    </div>
+    <div id="bearingTxt" class="txt">Kıble: --°</div>
+    <div id="warn" class="warn"></div>
+  </div>
+
+<script>
+  const KAABA = { lat: 21.4225 * Math.PI/180, lon: 39.8262 * Math.PI/180 };
+  const warn = document.getElementById('warn');
+  const bearingTxt = document.getElementById('bearingTxt');
+  const arrow = document.getElementById('arrow');
+  const kaaba = document.getElementById('kaaba');
+
+  function bearingToKaaba(lat, lon) {
+    const φ1 = lat * Math.PI/180, λ1 = lon * Math.PI/180;
+    const y = Math.sin(KAABA.lon - λ1) * Math.cos(KAABA.lat);
+    const x = Math.cos(φ1)*Math.sin(KAABA.lat) - Math.sin(φ1)*Math.cos(KAABA.lat)*Math.cos(KAABA.lon - λ1);
+    let θ = Math.atan2(y, x) * 180/Math.PI;
+    return (θ + 360) % 360;
+  }
+
+  let qiblaBearing = null;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      qiblaBearing = bearingToKaaba(pos.coords.latitude, pos.coords.longitude);
+      bearingTxt.textContent = `Kıble: ${Math.round(qiblaBearing)}°`;
+      warn.textContent = '';
+    },
+    () => { warn.textContent = 'Konum izni verin'; },
+    { enableHighAccuracy:true, timeout:10000 }
+  );
+
+  let smooth = 0;
+  function setRotation(deg) {
+    smooth = smooth + 0.18 * (deg - smooth);
+    arrow.style.transform = `rotate(${smooth}deg)`;
+    kaaba.style.transform = `translateY(-120px) rotate(${smooth}deg)`;
+  }
+
+  function handleOrientation(e) {
+    if (qiblaBearing == null) return;
+    let heading = null;
+    if (typeof e.webkitCompassHeading === 'number') heading = e.webkitCompassHeading;
+    else if (typeof e.alpha === 'number') heading = 360 - e.alpha;
+    if (heading == null) return;
+    const rotateDeg = (qiblaBearing - heading + 360) % 360;
+    setRotation(rotateDeg);
+  }
+
+  async function initCompass() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const p = await DeviceOrientationEvent.requestPermission();
+        if (p !== 'granted') { warn.textContent = 'Pusula izni verin'; return; }
+      } catch { warn.textContent = 'Pusula izni verin'; return; }
+    }
+    window.addEventListener('deviceorientation', handleOrientation, true);
+  }
+  initCompass();
+</script>
+</body>
+</html>
