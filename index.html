@@ -13,13 +13,11 @@
       --text:#f3f4f6;
       --muted:rgba(243,244,246,.72);
       --warn:#fbbf24;
-      --line:rgba(255,255,255,.10);
     }
 
     html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; }
     body { overflow:hidden; }
 
-    /* Very subtle background */
     body:before{
       content:"";
       position:fixed; inset:0;
@@ -87,7 +85,6 @@
     .hint{ font-size:12.5px; color:var(--muted); line-height:1.35; }
     .version{ font-size:12.5px; color:rgba(255,221,138,.85); font-weight:900; letter-spacing:.3px; }
 
-    /* Countdown overlay (always visible when active) */
     .count{
       display:none;
       padding:10px 12px;
@@ -103,10 +100,11 @@
     .count.show{ display:block; }
 
     .mid{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
+    .midWrap{ position:relative; width:min(340px, 86vw); aspect-ratio:1/1; }
 
     .ring{
-      width:min(340px, 86vw);
-      aspect-ratio:1/1;
+      width:100%;
+      height:100%;
       border-radius:50%;
       position:relative;
       display:flex;
@@ -157,7 +155,6 @@
       z-index:8;
     }
 
-    /* ROTATING GROUP (pivot center) */
     .rot{
       position:absolute;
       left:50%; top:50%;
@@ -168,31 +165,28 @@
       z-index:6;
     }
 
-    /* Needle (centered, rotates around center because parent rotates) */
     .needle{
       position:absolute;
       left:50%; top:50%;
       width:10px;
       height:132px;
-      transform:translate(-50%,-100%); /* bottom of needle sits at center */
+      transform:translate(-50%,-100%);
       border-radius:12px;
       background:linear-gradient(180deg, rgba(255,221,138,.95), rgba(214,178,94,.25));
       box-shadow:0 16px 25px rgba(0,0,0,.45);
     }
-    /* tail below center */
     .tail{
       position:absolute;
       left:50%; top:50%;
       width:8px;
       height:52px;
-      transform:translate(-50%, 0%); /* starts at center and goes down */
+      transform:translate(-50%, 0%);
       border-radius:12px;
       background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.55));
       border:1px solid rgba(255,255,255,.08);
       box-shadow:0 10px 18px rgba(0,0,0,.55);
     }
 
-    /* Qibla arrowhead at top direction */
     .qHead{
       position:absolute;
       left:50%; top:50%;
@@ -221,6 +215,41 @@
       transform:translate(-50%,-214px);
       font-size:18px;
       filter:drop-shadow(0 8px 12px rgba(0,0,0,.6));
+      user-select:none;
+    }
+
+    /* ✅ MINI WORLD MAP */
+    .miniMap{
+      position:absolute;
+      left:14px;
+      bottom:14px;
+      width:92px;
+      height:92px;
+      border-radius:50%;
+      border:1px solid rgba(214,178,94,.35);
+      box-shadow:0 16px 35px rgba(0,0,0,.55);
+      overflow:hidden;
+      background:radial-gradient(circle at 30% 30%, rgba(255,221,138,.10), rgba(0,0,0,.75));
+      z-index:9;
+      backdrop-filter: blur(6px);
+    }
+    .miniMap:after{
+      content:"";
+      position:absolute; inset:0;
+      border-radius:50%;
+      box-shadow: inset 0 0 0 2px rgba(255,221,138,.10);
+      pointer-events:none;
+    }
+    .miniLabel{
+      position:absolute;
+      left:14px;
+      bottom:112px;
+      font-size:11px;
+      color:rgba(255,221,138,.85);
+      font-weight:900;
+      letter-spacing:.2px;
+      text-shadow:0 6px 16px rgba(0,0,0,.7);
+      z-index:10;
       user-select:none;
     }
 
@@ -271,9 +300,7 @@
         <div id="stateChip" class="chip">Bekliyor…</div>
       </div>
 
-      <div class="version">Sürüm: GOLD-SUS-FINAL-1</div>
-
-      <!-- Countdown visible here -->
+      <div class="version">Sürüm: GOLD-MAP-1</div>
       <div id="countdown" class="count">Yön belirleniyor… 5</div>
 
       <div class="hint">
@@ -282,16 +309,79 @@
     </div>
 
     <div class="mid">
-      <div class="ring">
-        <div class="label n">N</div><div class="label e">E</div><div class="label s">S</div><div class="label w">W</div>
-        <div class="centerDot"></div>
+      <div class="midWrap">
 
-        <div id="rot" class="rot">
-          <div class="needle"></div>
-          <div class="tail"></div>
-          <div class="qHead"></div>
-          <div class="kaaba">🕋</div>
+        <div class="ring">
+          <div class="label n">N</div><div class="label e">E</div><div class="label s">S</div><div class="label w">W</div>
+          <div class="centerDot"></div>
+
+          <div id="rot" class="rot">
+            <div class="needle"></div>
+            <div class="tail"></div>
+            <div class="qHead"></div>
+            <div class="kaaba">🕋</div>
+          </div>
         </div>
+
+        <div class="miniLabel">Dünya</div>
+
+        <!-- Mini world map (SVG) -->
+        <div class="miniMap">
+          <svg id="miniSvg" viewBox="0 0 360 180" width="100%" height="100%" preserveAspectRatio="none">
+            <!-- Ocean tint -->
+            <rect x="0" y="0" width="360" height="180" fill="rgba(0,0,0,.55)"></rect>
+
+            <!-- Simple grid -->
+            <g opacity="0.25" stroke="rgba(255,221,138,.35)" stroke-width="1">
+              <path d="M0,90 H360" />
+              <path d="M180,0 V180" />
+              <path d="M0,45 H360" />
+              <path d="M0,135 H360" />
+              <path d="M90,0 V180" />
+              <path d="M270,0 V180" />
+            </g>
+
+            <!-- Very simplified continents (premium silhouette) -->
+            <g fill="rgba(34,197,94,.18)" stroke="rgba(255,221,138,.18)" stroke-width="1">
+              <!-- Americas -->
+              <path d="M55,35
+                       C35,45 30,70 40,85
+                       C48,98 45,120 58,135
+                       C70,150 85,150 95,136
+                       C105,122 98,108 92,96
+                       C85,80 95,65 92,52
+                       C88,40 72,30 55,35 Z"/>
+              <!-- Greenland -->
+              <path d="M95,18 C88,16 82,20 84,28 C86,36 98,34 102,26 C105,20 101,18 95,18 Z"/>
+              <!-- Afro-Eurasia -->
+              <path d="M155,35
+                       C175,25 210,28 230,40
+                       C245,48 262,46 275,58
+                       C290,72 285,88 270,94
+                       C250,102 242,110 235,122
+                       C225,140 205,150 192,142
+                       C178,132 176,115 170,104
+                       C162,92 150,88 142,78
+                       C130,62 135,42 155,35 Z"/>
+              <!-- Australia -->
+              <path d="M275,125
+                       C288,120 305,124 314,134
+                       C322,144 314,155 300,156
+                       C286,157 272,144 275,125 Z"/>
+              <!-- Madagascar-ish -->
+              <path d="M230,122 C236,122 240,128 238,134 C236,140 230,140 228,134 C226,128 228,122 230,122 Z"/>
+            </g>
+
+            <!-- Line + points -->
+            <g>
+              <line id="miniLine" x1="0" y1="0" x2="0" y2="0"
+                    stroke="rgba(255,221,138,.85)" stroke-width="2" opacity="0.9"/>
+              <circle id="miniUser" cx="0" cy="0" r="4.5" fill="rgba(34,197,94,.95)" stroke="rgba(255,221,138,.75)" stroke-width="1"/>
+              <circle id="miniKaaba" cx="0" cy="0" r="4.5" fill="rgba(255,221,138,.95)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
+            </g>
+          </svg>
+        </div>
+
       </div>
     </div>
 
@@ -304,7 +394,8 @@
   </div>
 
 <script>
-  const KAABA = { lat: 21.4225 * Math.PI/180, lon: 39.8262 * Math.PI/180 };
+  const KAABA = { latDeg: 21.4225, lonDeg: 39.8262, lat: 21.4225 * Math.PI/180, lon: 39.8262 * Math.PI/180 };
+
   const warn = document.getElementById('warn');
   const bearingTxt = document.getElementById('bearingTxt');
   const rot = document.getElementById('rot');
@@ -312,10 +403,14 @@
   const stateChip = document.getElementById('stateChip');
   const countdownEl = document.getElementById('countdown');
 
+  // mini map elements
+  const miniLine = document.getElementById('miniLine');
+  const miniUser = document.getElementById('miniUser');
+  const miniKaaba = document.getElementById('miniKaaba');
+
   let qiblaBearing = null;
   let compassStarted = false;
 
-  // Countdown control
   let countdownTimer = null;
   let countdownValue = 0;
   let countdownStartMs = 0;
@@ -344,10 +439,8 @@
   }
 
   function hideCountdownRespectMinTime(){
-    // keep at least 3000ms visible so user notices it
     const elapsed = Date.now() - countdownStartMs;
     const wait = Math.max(0, 3000 - elapsed);
-
     setTimeout(() => {
       clearInterval(countdownTimer);
       countdownEl.classList.remove('show');
@@ -362,14 +455,44 @@
     return (θ + 360) % 360;
   }
 
+  // Mini map projection (equirectangular)
+  function proj(latDeg, lonDeg){
+    const x = (lonDeg + 180) / 360 * 360;
+    const y = (90 - latDeg) / 180 * 180;
+    return {x, y};
+  }
+
+  function updateMiniMap(userLatDeg, userLonDeg){
+    const u = proj(userLatDeg, userLonDeg);
+    const k = proj(KAABA.latDeg, KAABA.lonDeg);
+
+    miniUser.setAttribute('cx', u.x);
+    miniUser.setAttribute('cy', u.y);
+
+    miniKaaba.setAttribute('cx', k.x);
+    miniKaaba.setAttribute('cy', k.y);
+
+    miniLine.setAttribute('x1', u.x);
+    miniLine.setAttribute('y1', u.y);
+    miniLine.setAttribute('x2', k.x);
+    miniLine.setAttribute('y2', k.y);
+  }
+
   function requestLocation() {
     warn.textContent = 'Konum isteniyor...';
     setState('Konum…');
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        qiblaBearing = bearingToKaaba(pos.coords.latitude, pos.coords.longitude);
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        qiblaBearing = bearingToKaaba(lat, lon);
         bearingTxt.textContent = `Kıble: ${Math.round(qiblaBearing)}°`;
+
+        // update mini map
+        updateMiniMap(lat, lon);
+
         warn.textContent = compassStarted ? '' : 'Şimdi “Başlat (Sensör İzni)” butonuna bas.';
         setState(compassStarted ? 'Hazır ✅' : 'Konum hazır ✅', true);
 
@@ -383,7 +506,6 @@
     );
   }
 
-  // Smooth rotation
   let smooth = 0;
   function setRotation(deg) {
     smooth = smooth + 0.18 * (deg - smooth);
@@ -417,7 +539,6 @@
     compassStarted = false;
     setState('İzin…');
 
-    // show countdown immediately
     showCountdown();
 
     if (typeof DeviceOrientationEvent !== 'undefined' &&
