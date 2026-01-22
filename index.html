@@ -1,101 +1,162 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Google Maps Test</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kıble Test</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    #map {
-      width: 100%;
-      height: 400px;
-      margin-top: 15px;
-      border-radius: 10px;
-    }
-    button {
-      padding: 10px 14px;
-      margin-right: 8px;
-      cursor: pointer;
-    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 16px; }
+    #top { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    button { padding:10px 12px; border:1px solid #ccc; border-radius:10px; background:#fff; cursor:pointer; }
+    button:hover { background:#f5f5f5; }
+    #status { margin:10px 0; font-size:14px; }
+    #map { width:100%; height:70vh; border-radius:14px; overflow:hidden; border:1px solid #e5e5e5; }
+    .ok { color: #0a7a2f; }
+    .bad { color: #b00020; }
+    .info { color:#333; }
   </style>
 </head>
 <body>
+  <h1>🧭 Kıble Test</h1>
 
-<h2>Google Maps Test</h2>
+  <div id="top">
+    <button id="btnLoc">📍 Konum al</button>
+    <button id="btnSide">🧭 Side</button>
+    <button id="btnClear">🧹 Temizle</button>
+  </div>
 
-<button onclick="getLocation()">📍 Konum al</button>
-<button onclick="goSide()">🧭 Side</button>
+  <div id="status" class="info">Hazır…</div>
+  <div id="map"></div>
 
-<p id="status">Hazır</p>
+  <script>
+    // === 1) API KEY'ini buraya koy ===
+    const API_KEY = AIzaSyDjjTLQSqrvhjuG6N22cP7MiOdnvYZiSUQ;
 
-<div id="map"></div>
+    // === 2) Kâbe koordinatı ===
+    const KAABA = { lat: 21.422487, lng: 39.826206 };
 
-<script>
-  let map;
+    let map, userMarker, kaabaMarker, qiblaLine;
 
-  function initMap() {
-    const side = { lat: 36.7667, lng: 31.3886 };
-
-    map = new google.maps.Map(document.getElementById("map"), {
-      center: side,
-      zoom: 14,
-    });
-
-    new google.maps.Marker({
-      position: side,
-      map: map,
-      title: "Side",
-    });
-
-    document.getElementById("status").innerText = "Harita yüklendi ✅";
-  }
-
-  function goSide() {
-    map.setCenter({ lat: 36.7667, lng: 31.3886 });
-    map.setZoom(14);
-  }
-
-  function getLocation() {
-    if (!navigator.geolocation) {
-      document.getElementById("status").innerText = "Konum desteklenmiyor ❌";
-      return;
+    function setStatus(msg, ok=true){
+      const el = document.getElementById("status");
+      el.textContent = msg;
+      el.className = ok ? "ok" : "bad";
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const userPos = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
+    // Bearing: kullanıcıdan Kâbe'ye giden yön açısı (0=Kuzey, 90=Doğu)
+    function bearingDeg(from, to){
+      const φ1 = from.lat * Math.PI/180;
+      const φ2 = to.lat   * Math.PI/180;
+      const Δλ = (to.lng - from.lng) * Math.PI/180;
 
-        map.setCenter(userPos);
-        map.setZoom(16);
+      const y = Math.sin(Δλ) * Math.cos(φ2);
+      const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+      let θ = Math.atan2(y, x) * 180/Math.PI;
+      θ = (θ + 360) % 360;
+      return θ;
+    }
 
-        new google.maps.Marker({
-          position: userPos,
-          map: map,
-          title: "Sen buradasın",
-        });
+    function degToCardinal(deg){
+      const dirs = ["K", "KKD", "KD", "DKD", "D", "DGD", "GD", "GGD", "G", "GGB", "GB", "BGB", "B", "BKB", "KB", "KKB"];
+      return dirs[Math.round(deg / 22.5) % 16];
+    }
 
-        document.getElementById("status").innerText = "Konum alındı ✅";
-      },
-      () => {
-        document.getElementById("status").innerText = "Konum izni verilmedi ❌";
+    function initMap(){
+      if (!API_KEY || API_KEY === "YOUR_API_KEY_HERE") {
+        setStatus("❌ API key boş. YOUR_API_KEY_HERE yazan yere kendi key’ini yapıştır.", false);
+        return;
       }
-    );
-  }
-</script>
 
-<!-- 🔑 BURAYA KENDİ API KEY'İN -->
-<script
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDjjTLQSqrvhjuG6N22cP7MiOdnvYZiSUQ&callback=initMap"
-  async
-  defer>
-</script>
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 36.766, lng: 31.389 }, // Side civarı başlangıç
+        zoom: 12,
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true,
+      });
 
+      // Kâbe marker (haritada hep dursun istersen kapatabiliriz)
+      kaabaMarker = new google.maps.Marker({
+        position: KAABA,
+        map,
+        title: "Kâbe (Mekke)",
+      });
+
+      setStatus("✅ Harita yüklendi. Şimdi 'Konum al' bas.", true);
+    }
+
+    function drawQiblaFromUser(userPos){
+      // kullanıcı marker
+      if (userMarker) userMarker.setMap(null);
+      userMarker = new google.maps.Marker({
+        position: userPos,
+        map,
+        title: "Senin konumun",
+      });
+
+      // kıble çizgisi
+      if (qiblaLine) qiblaLine.setMap(null);
+      qiblaLine = new google.maps.Polyline({
+        path: [userPos, KAABA],
+        map,
+        geodesic: true,
+        strokeOpacity: 1.0,
+        strokeWeight: 3,
+      });
+
+      // hesap
+      const deg = bearingDeg(userPos, KAABA);
+      const card = degToCardinal(deg);
+
+      setStatus(`🧭 Kıble yönü: ${deg.toFixed(1)}° (${card}) — çizgi Kâbe’ye gidiyor.`, true);
+
+      // kullanıcıyı biraz zoomla göster
+      map.setCenter(userPos);
+      map.setZoom(15);
+    }
+
+    document.getElementById("btnLoc").addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        setStatus("❌ Tarayıcı konum desteklemiyor.", false);
+        return;
+      }
+      setStatus("📡 Konum alınıyor… (izin ver)", true);
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          drawQiblaFromUser(userPos);
+        },
+        (err) => {
+          setStatus("❌ Konum alınamadı. iPhone’da Safari > Ayarlar > Konum: İzin ver. Hata: " + err.message, false);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    });
+
+    document.getElementById("btnSide").addEventListener("click", () => {
+      // Side demo: sadece haritayı Side'a getirir (kıble hesaplaması konumla olur)
+      const side = { lat: 36.766, lng: 31.389 };
+      map.setCenter(side);
+      map.setZoom(14);
+      setStatus("ℹ️ Side'e gittik. Kıble için 'Konum al' bas.", true);
+    });
+
+    document.getElementById("btnClear").addEventListener("click", () => {
+      if (userMarker) userMarker.setMap(null);
+      if (qiblaLine) qiblaLine.setMap(null);
+      setStatus("Temizlendi. 'Konum al' bas.", true);
+    });
+
+    // Google Maps scriptini dinamik ekle
+    (function loadMaps(){
+      if (!API_KEY || API_KEY === "YOUR_API_KEY_HERE") return; // initMap zaten uyaracak
+      const s = document.createElement("script");
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(API_KEY)}&callback=initMap`;
+      s.async = true;
+      s.defer = true;
+      document.head.appendChild(s);
+    })();
+  </script>
 </body>
 </html>
