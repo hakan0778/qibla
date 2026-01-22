@@ -1,174 +1,101 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Qibla Map Test</title>
+  <meta charset="UTF-8" />
+  <title>Google Maps Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
-    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    #map { height: 100%; width: 100%; }
-    .panel {
-      position: fixed; left: 12px; top: 12px; z-index: 9999;
-      background: rgba(255,255,255,.95); border: 1px solid #ddd; border-radius: 12px;
-      padding: 10px 12px; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
     }
-    .panel b { display:block; margin-bottom:6px; }
-    .row { display:flex; gap:8px; flex-wrap: wrap; }
+    #map {
+      width: 100%;
+      height: 400px;
+      margin-top: 15px;
+      border-radius: 10px;
+    }
     button {
-      border: 1px solid #ccc; background: #fff; border-radius: 10px;
-      padding: 8px 10px; cursor: pointer;
+      padding: 10px 14px;
+      margin-right: 8px;
+      cursor: pointer;
     }
-    button:hover { background:#f6f6f6; }
-    #status { margin-top:8px; font-size: 12px; white-space: pre-wrap; }
-    .ok { color: #0a7a0a; }
-    .bad { color: #b00020; }
-    .hint { color:#333; opacity:.9; }
   </style>
 </head>
-
 <body>
-  <div class="panel">
-    <b>Google Maps Test</b>
-    <div class="row">
-      <button onclick="tryGeolocate()">📍 Konum al</button>
-      <button onclick="centerToSide()">🧭 Side</button>
-      <button onclick="showConsoleHint()">ℹ️ Hata nasıl bakılır?</button>
-    </div>
-    <div id="status" class="hint">Yükleniyor...</div>
-  </div>
 
-  <div id="map"></div>
+<h2>Google Maps Test</h2>
 
-  <script>
-    // 1) BURAYA API KEY'İNİ YAPIŞTIR
-    const API_KEY = AIzaSyDjjTLQSqrvhjuG6N22cP7MiOdnvYZiSUQ;
+<button onclick="getLocation()">📍 Konum al</button>
+<button onclick="goSide()">🧭 Side</button>
 
-    // 2) Basit durum yazıcısı
-    const statusEl = document.getElementById("status");
-    function setStatus(msg, ok=false){
-      statusEl.className = ok ? "ok" : "bad";
-      statusEl.textContent = msg;
+<p id="status">Hazır</p>
+
+<div id="map"></div>
+
+<script>
+  let map;
+
+  function initMap() {
+    const side = { lat: 36.7667, lng: 31.3886 };
+
+    map = new google.maps.Map(document.getElementById("map"), {
+      center: side,
+      zoom: 14,
+    });
+
+    new google.maps.Marker({
+      position: side,
+      map: map,
+      title: "Side",
+    });
+
+    document.getElementById("status").innerText = "Harita yüklendi ✅";
+  }
+
+  function goSide() {
+    map.setCenter({ lat: 36.7667, lng: 31.3886 });
+    map.setZoom(14);
+  }
+
+  function getLocation() {
+    if (!navigator.geolocation) {
+      document.getElementById("status").innerText = "Konum desteklenmiyor ❌";
+      return;
     }
-    function setHint(msg){
-      statusEl.className = "hint";
-      statusEl.textContent = msg;
-    }
 
-    // 3) Güvenlik: HTTPS değilse Maps bazen sapıtıyor
-    (function checkHttps(){
-      if (location.protocol !== "https:" && location.hostname !== "localhost") {
-        setStatus("⚠️ Bu sayfa HTTPS değil.\nGitHub Pages üzerinden açmalısın.\nÖrn: https://hakan0778.github.io/qibla/", false);
-      } else {
-        setHint("✅ Sayfa HTTPS. Şimdi Maps scripti yükleniyor...");
-      }
-    })();
-
-    // 4) Google Maps scriptini dinamik ekle (API key boşsa hemen yakalar)
-    (function loadMaps(){
-      if (!API_KEY || API_KEY === "YOUR_API_KEY_HERE") {
-        setStatus("❌ API_KEY boş.\nYOUR_API_KEY_HERE yazan yere kendi key’ini yapıştır.", false);
-        return;
-      }
-
-      // Scripti ekle
-      const s = document.createElement("script");
-      s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(API_KEY)}&v=weekly&callback=initMap`;
-      s.async = true;
-      s.defer = true;
-
-      s.onerror = () => {
-        setStatus("❌ Google Maps script yüklenemedi.\n- Key yanlış olabilir\n- Restriction (Website) hatalı olabilir\n- Billing bağlı değilse hata verebilir\nDetay için Console'a bak.", false);
-      };
-
-      document.head.appendChild(s);
-    })();
-
-    // 5) Maps init
-    let map, marker;
-
-    window.initMap = function initMap() {
-      try {
-        // Side (Antalya) yakınları default
-        const side = { lat: 36.7667, lng: 31.3886 };
-
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: side,
-          zoom: 12,
-          mapTypeControl: false,
-          fullscreenControl: true,
-          streetViewControl: false
-        });
-
-        marker = new google.maps.Marker({ position: side, map, title: "Side" });
-
-        setStatus("✅ Harita yüklendi! Şimdi 'Konum al' ile test et.", true);
-
-        // Hata yakalama: Google Maps bazen auth hatasını console'a basar
-        window.gm_authFailure = function() {
-          setStatus(
-            "❌ gm_authFailure: API KEY yetkisiz.\n" +
-            "ÇÖZÜM:\n" +
-            "1) Google Cloud > Credentials > API Key\n" +
-            "2) Application restrictions: Websites\n" +
-            "   - https://hakan0778.github.io/* (veya) https://hakan0778.github.io/qibla/*\n" +
-            "3) API restrictions: Sadece 'Maps JavaScript API' seçili olsun\n" +
-            "4) Billing proje bağlı olmalı",
-            false
-          );
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const userPos = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
         };
 
-      } catch (e) {
-        setStatus("❌ initMap içinde hata:\n" + (e?.message || e), false);
+        map.setCenter(userPos);
+        map.setZoom(16);
+
+        new google.maps.Marker({
+          position: userPos,
+          map: map,
+          title: "Sen buradasın",
+        });
+
+        document.getElementById("status").innerText = "Konum alındı ✅";
+      },
+      () => {
+        document.getElementById("status").innerText = "Konum izni verilmedi ❌";
       }
-    };
+    );
+  }
+</script>
 
-    // 6) Konum al (opsiyonel)
-    function tryGeolocate(){
-      if (!navigator.geolocation) {
-        setStatus("❌ Bu cihaz konum desteklemiyor.", false);
-        return;
-      }
-      setHint("📍 Konum isteniyor... (izin ver)");
+<!-- 🔑 BURAYA KENDİ API KEY'İN -->
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDjjTLQSqrvhjuG6N22cP7MiOdnvYZiSUQ&callback=initMap"
+  async
+  defer>
+</script>
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          if (map) {
-            map.setCenter(p);
-            map.setZoom(15);
-            marker.setPosition(p);
-            marker.setTitle("Konumun");
-            setStatus("✅ Konum alındı ve harita ortalandı.", true);
-          } else {
-            setStatus("⚠️ Harita yok ama konum geldi: " + JSON.stringify(p), false);
-          }
-        },
-        (err) => {
-          setStatus("❌ Konum hatası:\n" + err.message, false);
-        },
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-      );
-    }
-
-    function centerToSide(){
-      const side = { lat: 36.7667, lng: 31.3886 };
-      if (!map) { setStatus("⚠️ Harita henüz yüklenmedi.", false); return; }
-      map.setCenter(side);
-      map.setZoom(12);
-      marker.setPosition(side);
-      marker.setTitle("Side");
-      setStatus("✅ Side'a döndüm.", true);
-    }
-
-    function showConsoleHint(){
-      setHint(
-        "Console aç:\n" +
-        "- PC Chrome: F12 > Console\n" +
-        "- Safari iPhone: Ayarlar > Safari > Gelişmiş > Web Denetçisi\n" +
-        "Eğer hata varsa ekran görüntüsü at."
-      );
-    }
-  </script>
 </body>
 </html>
