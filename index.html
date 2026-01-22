@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kıble | iOS Pusula Fix</title>
+  <title>Kıble | iPhone Pusula Teşhis</title>
 
   <style>
     html, body { height: 100%; margin: 0; }
@@ -14,7 +14,7 @@
       background: rgba(255,255,255,.95); padding: 10px 12px;
       border-radius: 12px; font-family: system-ui, Arial; font-size: 14px;
       box-shadow: 0 6px 20px rgba(0,0,0,.15);
-      max-width: 390px;
+      max-width: 410px;
     }
     #status { margin-top: 8px; font-size: 12px; opacity: .95; white-space: pre-line; line-height: 1.35; }
     .row { display:flex; gap:8px; flex-wrap: wrap; margin-top: 10px; }
@@ -32,7 +32,7 @@
       padding: 20px;
     }
     #startCard{
-      width: min(440px, 92vw);
+      width: min(460px, 92vw);
       background: #fff; border-radius: 16px;
       padding: 16px;
       font-family: system-ui, Arial;
@@ -60,54 +60,42 @@
 
   <div id="startOverlay">
     <div id="startCard">
-      <h3>Kâbe’yi Bul</h3>
+      <h3>Kâbe’yi Bul (Start)</h3>
       <p>
-        “Start” ile iPhone pusula izni sorar. İzin verince,
-        telefonu çevir. Telefonun üstü kıbleye gelince çizgi yeşil olur.
-        <br><br>
-        Not: Bu sürümde pusula verisi gelmezse ekranda açıkça yazar.
+        Bu sürüm “pusula niye çalışmıyor?” teşhis eder:
+        Start’a basınca <b>izin sonucu</b> ve <b>sensör verisi geliyor mu</b> ekranda yazacak.
       </p>
       <button id="btnStart">Kâbe’yi Bul (Start)</button>
     </div>
   </div>
 
   <script>
-    /************ AYARLAR ************/
     const KAABA = { lat: 21.422487, lng: 39.826206 };
     const CLOSE_ZOOM = 17;
     const ALIGN_TOL_DEG = 7;
     const LINE_RED = "#111";
     const LINE_GREEN = "#19a84a";
 
-    /************ DURUM ************/
     let map, kaabaMarker, userMarker, qiblaLine;
     let mapIsSatellite = true;
 
     let userPos = null;
     let qiblaDeg = null;
 
-    let haveMotion = false;
-    let headingDeg = null; // 0..360
+    let permissionResult = "unknown";
     let lastEventTs = 0;
+    let headingDeg = null;
 
-    function setStatus(t){
-      const el = document.getElementById("status");
-      if (el) el.textContent = t;
-    }
-    function showStartOverlay(show){
-      const el = document.getElementById("startOverlay");
-      if (el) el.style.display = show ? "flex" : "none";
-    }
-
+    function setStatus(t){ document.getElementById("status").textContent = t; }
+    function showStartOverlay(show){ document.getElementById("startOverlay").style.display = show ? "flex" : "none"; }
     function normalize360(x){ return (x % 360 + 360) % 360; }
-    function toRad(d){ return d * Math.PI / 180; }
-    function toDeg(r){ return r * 180 / Math.PI; }
+    function toRad(d){ return d * Math.PI/180; }
+    function toDeg(r){ return r * 180/Math.PI; }
     function angleDelta(a, b){
       let d = normalize360(a - b);
       if (d > 180) d = 360 - d;
       return d;
     }
-
     function bearingToKaaba(lat, lng){
       const φ1 = toRad(lat);
       const φ2 = toRad(KAABA.lat);
@@ -118,10 +106,8 @@
       return (toDeg(θ) + 360) % 360;
     }
 
-    /************ KONUM ************/
     function getLocationOnce(){
       return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) return reject(new Error("Geolocation desteklenmiyor."));
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
           (err) => reject(err),
@@ -130,24 +116,11 @@
       });
     }
 
-    async function startLocation(){
-      setStatus("Konum alınıyor...");
-      userPos = await getLocationOnce();
-      qiblaDeg = bearingToKaaba(userPos.lat, userPos.lng);
-
-      ensureUserMarker();
-      ensureLine();
-      zoomToUser();
-      updateLineColorAndDebug();
-    }
-
-    /************ HARİTA ************/
     function ensureUserMarker(){
       if (!userPos) return;
       if (!userMarker) userMarker = new google.maps.Marker({ position: userPos, map, title: "Konumum" });
       else userMarker.setPosition(userPos);
     }
-
     function ensureLine(){
       if (!userPos) return;
       if (qiblaLine) qiblaLine.setMap(null);
@@ -160,136 +133,105 @@
       });
       qiblaLine.setMap(map);
     }
-
     function zoomToUser(){
-      if (!userPos || !map) return;
+      if (!userPos) return;
       map.setCenter(userPos);
       map.setZoom(CLOSE_ZOOM);
     }
 
-    function updateLineColorAndDebug(extraText=""){
-      if (!qiblaLine || qiblaDeg == null || !userPos) return;
-
-      let ok = false;
-      if (haveMotion && headingDeg != null) {
-        const d = angleDelta(qiblaDeg, headingDeg);
-        ok = d <= ALIGN_TOL_DEG;
-      }
-      qiblaLine.setOptions({ strokeColor: ok ? LINE_GREEN : LINE_RED });
-
+    function updateUI(extra=""){
       const parts = [];
-      parts.push(`Konum: ${userPos.lat.toFixed(5)}, ${userPos.lng.toFixed(5)}`);
-      parts.push(`Kıble: ${qiblaDeg.toFixed(1)}°`);
-
-      if (haveMotion) {
-        if (headingDeg != null) {
-          const d = angleDelta(qiblaDeg, headingDeg);
-          parts.push(`Pusula: ${headingDeg.toFixed(1)}°`);
-          parts.push(`Fark: ${d.toFixed(1)}° (≤ ${ALIGN_TOL_DEG}° olunca YEŞİL)`);
-        } else {
-          parts.push(`Pusula: izin var ama veri gelmiyor (sensör kapalı olabilir)`);
-        }
-      } else {
-        parts.push(`Pusula: Kapalı (Start'a bas)`);
+      parts.push(`Konum: ${userPos ? userPos.lat.toFixed(5)+", "+userPos.lng.toFixed(5) : "yok"}`);
+      parts.push(`Kıble: ${qiblaDeg != null ? qiblaDeg.toFixed(1)+"°" : "yok"}`);
+      parts.push(`Yön izni (requestPermission): ${permissionResult}`);
+      parts.push(`Sensör event geldi mi: ${lastEventTs ? "EVET" : "HAYIR"}`);
+      parts.push(`Heading: ${headingDeg != null ? headingDeg.toFixed(1)+"°" : "yok"}`);
+      if (qiblaDeg != null && headingDeg != null){
+        const d = angleDelta(qiblaDeg, headingDeg);
+        parts.push(`Fark: ${d.toFixed(1)}° (≤ ${ALIGN_TOL_DEG}° olunca YEŞİL)`);
       }
-
-      if (extraText) parts.push(extraText);
+      if (extra) parts.push(extra);
       setStatus(parts.join("\n"));
     }
 
-    /************ iOS PUSULA: HESAPLI HEADING (fallback) ************/
-    // alpha/beta/gamma'dan heading hesaplama (webkitCompassHeading yoksa)
-    function compassHeadingFromEuler(alpha, beta, gamma) {
-      // kaynak formül: cihaz orientation'dan dünya koordinatına dönüşüm mantığı
-      const _alpha = toRad(alpha);
-      const _beta  = toRad(beta);
-      const _gamma = toRad(gamma);
-
-      const cA = Math.cos(_alpha), sA = Math.sin(_alpha);
-      const cB = Math.cos(_beta),  sB = Math.sin(_beta);
-      const cG = Math.cos(_gamma), sG = Math.sin(_gamma);
-
-      // rotation matrix (Z-X'-Y'')
-      const rA = -cA * sG - sA * sB * cG;
-      const rB = -sA * sG + cA * sB * cG;
-
-      let heading = Math.atan2(rA, rB);
-      heading = toDeg(heading);
-      return normalize360(heading);
-    }
-
-    /************ YÖN (PUSULA) ************/
-    async function enableCompassWithPermission(){
-      // iOS: user gesture ile izin ister
-      if (typeof DeviceOrientationEvent !== "undefined" &&
-          typeof DeviceOrientationEvent.requestPermission === "function") {
-        const res = await DeviceOrientationEvent.requestPermission();
-        if (res !== "granted") throw new Error("Yön izni verilmedi.");
+    function updateLineColor(){
+      if (!qiblaLine || qiblaDeg == null) return;
+      let ok = false;
+      if (headingDeg != null){
+        ok = angleDelta(qiblaDeg, headingDeg) <= ALIGN_TOL_DEG;
       }
-      haveMotion = true;
-
-      window.addEventListener("deviceorientationabsolute", onOrientation, true);
-      window.addEventListener("deviceorientation", onOrientation, true);
-
-      // 1 saniye sonra sensör verisi gelmiş mi kontrol et
-      setTimeout(() => {
-        const now = Date.now();
-        if (!lastEventTs || (now - lastEventTs) > 900) {
-          updateLineColorAndDebug(
-            "⚠️ iPhone sensör verisi gelmedi.\n" +
-            "Ayarlar → Safari → Motion & Orientation Access: AÇIK olmalı.\n" +
-            "Ayrıca Telefonu 8 çizip pusulayı kalibre etmeyi dene."
-          );
-        }
-      }, 1200);
+      qiblaLine.setOptions({ strokeColor: ok ? LINE_GREEN : LINE_RED });
     }
 
     function onOrientation(e){
       lastEventTs = Date.now();
 
-      // 1) iOS gerçek pusula (varsa en iyi)
+      // iOS Safari: varsa en iyisi
       if (typeof e.webkitCompassHeading === "number") {
         headingDeg = normalize360(e.webkitCompassHeading);
-        updateLineColorAndDebug("Kaynak: webkitCompassHeading ✅");
+        updateLineColor();
+        updateUI("Kaynak: webkitCompassHeading ✅");
         return;
       }
 
-      // 2) Fallback: alpha/beta/gamma’dan hesapla
-      if (typeof e.alpha === "number" && typeof e.beta === "number" && typeof e.gamma === "number") {
-        headingDeg = compassHeadingFromEuler(e.alpha, e.beta, e.gamma);
-        updateLineColorAndDebug("Kaynak: hesaplanan heading (alpha/beta/gamma) ✅");
+      // fallback: bazı cihazlarda alpha gelir
+      if (typeof e.alpha === "number") {
+        headingDeg = normalize360(360 - e.alpha);
+        updateLineColor();
+        updateUI("Kaynak: alpha fallback ✅");
         return;
       }
 
-      // 3) Olmadı: veri yok
       headingDeg = null;
-      updateLineColorAndDebug("Kaynak: sensör verisi yok ❌");
+      updateUI("Kaynak: sensör datası yok ❌");
     }
 
-    /************ START ************/
-    async function onStart(){
-      showStartOverlay(false);
-
+    async function startAll(){
       // 1) Konum
+      showStartOverlay(false);
       try {
-        await startLocation();
-      } catch (e) {
-        setStatus("Konum alınamadı: " + (e.message || "Hata"));
+        userPos = await getLocationOnce();
+        qiblaDeg = bearingToKaaba(userPos.lat, userPos.lng);
+        ensureUserMarker();
+        ensureLine();
+        zoomToUser();
+      } catch (e){
         showStartOverlay(true);
+        setStatus("Konum alınamadı. Safari’de konum izni ver.");
         return;
       }
 
-      // 2) Pusula
+      // 2) Pusula izni
       try {
-        await enableCompassWithPermission();
-        updateLineColorAndDebug("Pusula açıldı. Telefonu çevir…");
-      } catch (e) {
-        haveMotion = false;
-        updateLineColorAndDebug("❌ Yön izni verilmedi → yeşile dönmez.");
+        if (typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function") {
+          permissionResult = await DeviceOrientationEvent.requestPermission();
+        } else {
+          // Bazı iOS sürümlerinde requestPermission görünmez ama event yine gelir
+          permissionResult = "no-requestPermission (try listen)";
+        }
+      } catch (e){
+        permissionResult = "denied (exception)";
       }
+
+      // 3) Dinle
+      window.addEventListener("deviceorientationabsolute", onOrientation, true);
+      window.addEventListener("deviceorientation", onOrientation, true);
+
+      updateUI("Start tamam. 2 saniye telefonu çevir…");
+
+      // 2sn sonra event gelmiş mi kontrol
+      setTimeout(() => {
+        if (!lastEventTs) {
+          updateUI(
+            "⚠️ Sensör event hiç gelmedi.\n" +
+            "Bu durumda iPhone’da genelde Safari → Motion & Orientation Access kapalıdır\n" +
+            "(Ayarlar → Safari → Motion & Orientation Access → AÇIK)."
+          );
+        }
+      }, 2000);
     }
 
-    /************ MAP INIT ************/
     function initMap(){
       map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 36.8, lng: 31.4 },
@@ -299,18 +241,15 @@
         streetViewControl: false,
         fullscreenControl: true,
       });
-
       kaabaMarker = new google.maps.Marker({ position: KAABA, map, title: "Kâbe" });
-      setStatus("Harita hazır. Start ile pusulayı aç.");
+      setStatus("Harita hazır. Start’a bas.");
     }
     window.initMap = initMap;
 
-    /************ UI ************/
     document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("btnStart").addEventListener("click", onStart);
+      document.getElementById("btnStart").addEventListener("click", startAll);
 
       document.getElementById("btnToggle").addEventListener("click", () => {
-        if (!map) return;
         mapIsSatellite = !mapIsSatellite;
         map.setMapTypeId(mapIsSatellite ? "satellite" : "roadmap");
       });
@@ -321,7 +260,6 @@
     });
   </script>
 
-  <!-- ✅ API KEY SADECE BURADA -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDjjTLQSqrvhjuG6N22cP7MiOdnvYZiSUQ&callback=initMap"
     async defer></script>
