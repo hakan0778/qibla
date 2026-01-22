@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kıble | Uydu + Yeşil Onay</title>
+  <title>Kıble | Uydu + Start</title>
 
   <style>
     html, body { height: 100%; margin: 0; }
@@ -14,21 +14,21 @@
       background: rgba(255,255,255,.95); padding: 10px 12px;
       border-radius: 12px; font-family: system-ui, Arial; font-size: 14px;
       box-shadow: 0 6px 20px rgba(0,0,0,.15);
-      max-width: 360px;
+      max-width: 370px;
     }
     #status { margin-top: 8px; font-size: 12px; opacity: .9; white-space: pre-line; line-height: 1.35; }
     .row { display:flex; gap:8px; flex-wrap: wrap; margin-top: 10px; }
     button {
       padding: 9px 10px; border: 0; border-radius: 10px; cursor: pointer;
-      background:#111; color:#fff; font-weight:600;
+      background:#111; color:#fff; font-weight:700;
     }
-    button.secondary { background:#e9e9e9; color:#111; }
+    button.secondary { background:#e9e9e9; color:#111; font-weight:700; }
 
-    /* iOS için “tek dokunuşla izin” (motion/orientation) */
+    /* Start overlay */
     #startOverlay{
       position: fixed; inset: 0; z-index: 9999;
       background: rgba(0,0,0,.55);
-      display: none;
+      display: flex;
       align-items: center; justify-content: center;
       padding: 20px;
     }
@@ -59,14 +59,15 @@
 
   <div id="map"></div>
 
+  <!-- iPhone için: START butonu (kıbleyi bul) -->
   <div id="startOverlay">
     <div id="startCard">
-      <h3>İzinler gerekli</h3>
+      <h3>Kıbleyi Bul</h3>
       <p>
-        Konum izniyle çizgi çizilir. Telefon yön izni varsa,
-        telefonun üstü kıbleye gelince çizgi yeşile döner.
+        “Kıbleyi Bul (Start)” butonuna basınca iPhone pusula izni sorar.
+        İzin verirsen, telefonun üstü kıbleye gelince çizgi yeşile döner.
       </p>
-      <button id="btnStart">Başlat (Konum + Yön)</button>
+      <button id="btnStart">Kıbleyi Bul (Start)</button>
     </div>
   </div>
 
@@ -95,6 +96,7 @@
       const el = document.getElementById("startOverlay");
       if (el) el.style.display = show ? "flex" : "none";
     }
+
     function normalize360(x){ return (x % 360 + 360) % 360; }
     function toRad(d){ return d * Math.PI / 180; }
     function toDeg(r){ return r * 180 / Math.PI; }
@@ -112,59 +114,6 @@
       const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
       const θ = Math.atan2(y, x);
       return (toDeg(θ) + 360) % 360;
-    }
-
-    /************ HARİTA ************/
-    function ensureUserMarker(){
-      if (!userPos) return;
-      if (!userMarker) {
-        userMarker = new google.maps.Marker({ position: userPos, map, title: "Konumum" });
-      } else {
-        userMarker.setPosition(userPos);
-      }
-    }
-
-    function ensureLine(){
-      if (!userPos) return;
-      if (qiblaLine) qiblaLine.setMap(null);
-      qiblaLine = new google.maps.Polyline({
-        path: [userPos, KAABA],
-        geodesic: true,
-        strokeOpacity: 1.0,
-        strokeWeight: 5,
-        strokeColor: LINE_RED
-      });
-      qiblaLine.setMap(map);
-    }
-
-    function zoomToUser(){
-      if (!userPos || !map) return;
-      map.setCenter(userPos);
-      map.setZoom(CLOSE_ZOOM);
-    }
-
-    function updateLineColor(){
-      if (!qiblaLine || qiblaDeg == null) return;
-
-      let ok = false;
-      if (haveMotion && headingDeg != null) {
-        const d = angleDelta(qiblaDeg, headingDeg);
-        ok = d <= ALIGN_TOL_DEG;
-      }
-
-      qiblaLine.setOptions({ strokeColor: ok ? LINE_GREEN : LINE_RED });
-
-      const parts = [];
-      parts.push(`Konum: ${userPos.lat.toFixed(5)}, ${userPos.lng.toFixed(5)}`);
-      parts.push(`Kıble: ${qiblaDeg.toFixed(1)}°`);
-      if (haveMotion && headingDeg != null) {
-        const d = angleDelta(qiblaDeg, headingDeg);
-        parts.push(`Telefon yönü: ${headingDeg.toFixed(1)}°`);
-        parts.push(`Fark: ${d.toFixed(1)}° (≤ ${ALIGN_TOL_DEG}° olunca YEŞİL)`);
-      } else {
-        parts.push(`Yön sensörü: yok/izin yok (çizgi sabit kalır)`);
-      }
-      setStatus(parts.join("\n"));
     }
 
     /************ KONUM ************/
@@ -190,8 +139,58 @@
       updateLineColor();
     }
 
+    /************ HARİTA ************/
+    function ensureUserMarker(){
+      if (!userPos) return;
+      if (!userMarker) userMarker = new google.maps.Marker({ position: userPos, map, title: "Konumum" });
+      else userMarker.setPosition(userPos);
+    }
+
+    function ensureLine(){
+      if (!userPos) return;
+      if (qiblaLine) qiblaLine.setMap(null);
+      qiblaLine = new google.maps.Polyline({
+        path: [userPos, KAABA],
+        geodesic: true,
+        strokeOpacity: 1.0,
+        strokeWeight: 5,
+        strokeColor: LINE_RED
+      });
+      qiblaLine.setMap(map);
+    }
+
+    function zoomToUser(){
+      if (!userPos || !map) return;
+      map.setCenter(userPos);
+      map.setZoom(CLOSE_ZOOM);
+    }
+
+    function updateLineColor(){
+      if (!qiblaLine || qiblaDeg == null || !userPos) return;
+
+      let ok = false;
+      if (haveMotion && headingDeg != null) {
+        const d = angleDelta(qiblaDeg, headingDeg);
+        ok = d <= ALIGN_TOL_DEG;
+      }
+      qiblaLine.setOptions({ strokeColor: ok ? LINE_GREEN : LINE_RED });
+
+      const parts = [];
+      parts.push(`Konum: ${userPos.lat.toFixed(5)}, ${userPos.lng.toFixed(5)}`);
+      parts.push(`Kıble: ${qiblaDeg.toFixed(1)}°`);
+
+      if (haveMotion && headingDeg != null) {
+        const d = angleDelta(qiblaDeg, headingDeg);
+        parts.push(`Telefon yönü: ${headingDeg.toFixed(1)}°`);
+        parts.push(`Fark: ${d.toFixed(1)}° (≤ ${ALIGN_TOL_DEG}° olunca YEŞİL)`);
+      } else {
+        parts.push(`Pusula: Kapalı (Start'a bas)`);
+      }
+      setStatus(parts.join("\n"));
+    }
+
     /************ YÖN (PUSULA) ************/
-    async function requestMotionIfNeeded(){
+    async function enableCompassIOS(){
       // iOS: user gesture ile izin ister
       if (typeof DeviceOrientationEvent !== "undefined" &&
           typeof DeviceOrientationEvent.requestPermission === "function") {
@@ -199,47 +198,33 @@
         if (res !== "granted") throw new Error("Yön izni verilmedi.");
       }
       haveMotion = true;
-    }
 
-    function startMotionListeners(){
       window.addEventListener("deviceorientationabsolute", onOrientation, true);
       window.addEventListener("deviceorientation", onOrientation, true);
     }
 
     function onOrientation(e){
       let h = null;
-      if (typeof e.webkitCompassHeading === "number") h = e.webkitCompassHeading; // iOS
-      else if (typeof e.alpha === "number") h = 360 - e.alpha;                   // Android
+
+      // iOS Safari: gerçek pusula
+      if (typeof e.webkitCompassHeading === "number") {
+        h = e.webkitCompassHeading;
+      }
+      // Android: fallback
+      else if (typeof e.alpha === "number") {
+        h = 360 - e.alpha;
+      }
+
       if (h == null) return;
       headingDeg = normalize360(h);
       updateLineColor();
     }
 
-    /************ BAŞLAT ************/
-    async function autoStart(){
-      // Konumu otomatik dene
-      try {
-        await startLocation();
-      } catch (e) {
-        setStatus("Konum izni gerekli. Başlat'a bas.");
-        showStartOverlay(true);
-        return;
-      }
-
-      // Motion otomatik dene (Android çoğu zaman çalışır, iOS dokunuş ister)
-      try {
-        await requestMotionIfNeeded();
-        startMotionListeners();
-        updateLineColor();
-      } catch (e) {
-        // iOS için overlay
-        showStartOverlay(true);
-      }
-    }
-
-    async function startAllWithUserGesture(){
+    /************ START BUTONU ************/
+    async function onStart(){
       showStartOverlay(false);
 
+      // 1) Önce konum
       try {
         await startLocation();
       } catch (e) {
@@ -248,68 +233,55 @@
         return;
       }
 
+      // 2) Sonra pusula (iOS izin soracak)
       try {
-        await requestMotionIfNeeded();
-        startMotionListeners();
+        await enableCompassIOS();
+        setStatus("Pusula aktif ✅ Telefonu çevir, kıbleye gelince çizgi YEŞİL olacak.");
         updateLineColor();
       } catch (e) {
         haveMotion = false;
         setStatus(
           `Konum alındı ✅\n` +
           `Kıble: ${qiblaDeg.toFixed(1)}°\n` +
-          `Yön izni yok → yeşile dönme çalışmayabilir.`
+          `Yön izni yok → yeşile dönmeyebilir.`
         );
       }
     }
 
-    /************ GOOGLE MAPS CALLBACK (GLOBAL) ************/
+    /************ MAP INIT ************/
     function initMap(){
-      try{
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 36.8, lng: 31.4 },
-          zoom: 6,
-          mapTypeId: "satellite",      // 3) hep uydu aç
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-        });
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 36.8, lng: 31.4 },
+        zoom: 6,
+        mapTypeId: "satellite",
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+      });
 
-        kaabaMarker = new google.maps.Marker({
-          position: KAABA, map, title: "Kâbe",
-        });
+      kaabaMarker = new google.maps.Marker({ position: KAABA, map, title: "Kâbe" });
 
-        setStatus("Harita hazır. Konum otomatik alınacak…");
-        autoStart();
-      } catch(err){
-        setStatus("Harita başlatma hatası: " + err.message);
-      }
+      setStatus("Harita hazır. Kıbleyi Bul (Start) ile pusulayı aç.");
     }
     window.initMap = initMap;
 
-    /************ DOM HAZIR OLUNCA BUTONLARI BAĞLA ************/
+    /************ BUTONLARI BAĞLA ************/
     document.addEventListener("DOMContentLoaded", () => {
-      const btnStart = document.getElementById("btnStart");
-      const btnToggle = document.getElementById("btnToggle");
-      const btnMyLoc = document.getElementById("btnMyLoc");
+      document.getElementById("btnStart").addEventListener("click", onStart);
 
-      if (btnStart) btnStart.addEventListener("click", startAllWithUserGesture);
-
-      if (btnToggle) btnToggle.addEventListener("click", () => {
+      document.getElementById("btnToggle").addEventListener("click", () => {
         if (!map) return;
         mapIsSatellite = !mapIsSatellite;
         map.setMapTypeId(mapIsSatellite ? "satellite" : "roadmap");
       });
 
-      if (btnMyLoc) btnMyLoc.addEventListener("click", async () => {
-        if (!userPos) {
-          try { await startLocation(); } catch(e) {}
-        }
+      document.getElementById("btnMyLoc").addEventListener("click", () => {
         zoomToUser();
       });
     });
   </script>
 
-  <!-- ✅ API KEY SADECE BURADA OLMALI (doğru yer burası) -->
+  <!-- ✅ API KEY BURADA -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDjjTLQSqrvhjuG6N22cP7MiOdnvYZiSUQ&callback=initMap"
     async defer></script>
