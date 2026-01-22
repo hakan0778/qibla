@@ -7,125 +7,175 @@
   <style>
     :root{
       --bg:#050608;
+      --card:rgba(10,12,16,.62);
+      --card2:rgba(12,14,18,.55);
+      --line:rgba(255,255,255,.10);
+
       --gold:#d6b25e;
       --gold2:#ffdd8a;
       --green:#22c55e;
+
       --text:#f3f4f6;
-      --muted:rgba(243,244,246,.72);
+      --muted:rgba(243,244,246,.75);
       --warn:#fbbf24;
+      --danger:#fb7185;
     }
 
-    html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+    html, body { margin:0; height:100%; background:#000; color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; }
     body { overflow:hidden; }
 
-    body:before{
-      content:"";
+    /* Fullscreen map */
+    #map{
       position:fixed; inset:0;
-      background:
-        radial-gradient(circle at 20% 10%, rgba(214,178,94,.18), transparent 40%),
-        radial-gradient(circle at 80% 20%, rgba(34,197,94,.10), transparent 45%),
-        radial-gradient(circle at 50% 80%, rgba(214,178,94,.10), transparent 55%),
-        repeating-linear-gradient(135deg, rgba(255,255,255,.03) 0 1px, transparent 1px 10px);
-      opacity:.35;
-      pointer-events:none;
+      background:#000;
     }
 
-    .app{
-      height:100%;
-      display:flex;
-      flex-direction:column;
+    /* Overlay UI */
+    .ui{
+      position:fixed; inset:0;
       padding: calc(12px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
       box-sizing:border-box;
-      gap:12px;
-      max-width:520px;
-      margin:0 auto;
-      position:relative;
-      z-index:1;
-    }
-
-    .top{
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border:1px solid rgba(214,178,94,.25);
-      border-radius:16px;
-      padding:12px;
       display:flex;
       flex-direction:column;
       gap:10px;
-      box-shadow:0 18px 50px rgba(0,0,0,.35);
+      pointer-events:none;
+    }
+
+    .topCard{
+      pointer-events:auto;
+      max-width:520px;
+      width:100%;
+      margin:0 auto;
+      background:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.35));
+      border:1px solid rgba(214,178,94,.32);
+      border-radius:16px;
+      padding:12px;
+      box-shadow:0 18px 50px rgba(0,0,0,.45);
       backdrop-filter: blur(10px);
     }
 
-    .row{ display:flex; gap:10px; align-items:center; }
+    .row{ display:flex; gap:10px; align-items:center; justify-content:space-between; }
+    .version{
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.7px;
+      color:rgba(255,221,138,.92);
+      text-transform:uppercase;
+      opacity:.95;
+    }
+    .chip{
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.22);
+      font-weight:900;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .chip.ok{ color:#b7ffcf; border-color:rgba(34,197,94,.28); }
+    .chip.bad{ color:rgba(255,155,178,.95); border-color:rgba(251,113,133,.35); }
+
     .btn{
-      flex:1;
+      width:100%;
+      margin-top:10px;
       padding:12px 14px;
       border-radius:14px;
       border:1px solid rgba(214,178,94,.35);
-      background:linear-gradient(180deg, rgba(214,178,94,.22), rgba(255,221,138,.10));
+      background:linear-gradient(180deg, rgba(214,178,94,.35), rgba(255,221,138,.14));
       color:#fff;
-      font-weight:900;
+      font-weight:950;
       font-size:15px;
       cursor:pointer;
       box-shadow:0 10px 25px rgba(0,0,0,.35);
     }
     .btn:disabled{ opacity:.7; cursor:not-allowed; }
 
-    .chip{
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(0,0,0,.25);
-      font-weight:900;
-      font-size:13px;
-      color:var(--muted);
-      white-space:nowrap;
-    }
-    .chip.ok{ color:#b7ffcf; border-color:rgba(34,197,94,.28); }
-
-    .hint{ font-size:12.5px; color:var(--muted); line-height:1.35; }
-    .version{ font-size:12.5px; color:rgba(255,221,138,.85); font-weight:900; letter-spacing:.3px; }
-
     .count{
       display:none;
+      margin-top:10px;
       padding:10px 12px;
       border-radius:14px;
-      border:1px solid rgba(214,178,94,.28);
-      background:rgba(0,0,0,.28);
+      border:1px solid rgba(214,178,94,.22);
+      background:rgba(0,0,0,.22);
       font-weight:950;
-      color:rgba(255,221,138,.96);
+      color:rgba(255,221,138,.95);
       letter-spacing:.3px;
       text-align:center;
-      box-shadow:0 10px 26px rgba(0,0,0,.35);
     }
     .count.show{ display:block; }
 
-    .mid{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
-    .midWrap{ position:relative; width:min(340px, 86vw); aspect-ratio:1/1; }
+    .hint{
+      margin-top:8px;
+      font-size:12.5px;
+      color:rgba(243,244,246,.78);
+      line-height:1.35;
+    }
+
+    /* Bottom compass sheet */
+    .sheet{
+      pointer-events:auto;
+      max-width:520px;
+      width:100%;
+      margin:0 auto;
+      margin-top:auto;
+      background:linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.30));
+      border:1px solid rgba(214,178,94,.28);
+      border-radius:18px;
+      padding:12px;
+      box-shadow:0 22px 70px rgba(0,0,0,.55);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .sheet:before{
+      content:"";
+      position:absolute; left:-20%; right:-20%; bottom:-24px; height:70px;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(214,178,94,.20), transparent 55%),
+        radial-gradient(circle at 80% 40%, rgba(34,197,94,.14), transparent 60%),
+        linear-gradient(90deg, rgba(214,178,94,.20), rgba(255,221,138,.08), rgba(34,197,94,.10));
+      transform:skewX(-10deg);
+      opacity:.65;
+      pointer-events:none;
+    }
+
+    .compassWrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 0 6px;
+      position:relative;
+      z-index:1;
+    }
 
     .ring{
-      width:100%;
-      height:100%;
+      width:min(320px, 82vw);
+      aspect-ratio:1/1;
       border-radius:50%;
       position:relative;
       display:flex;
       align-items:center;
       justify-content:center;
-      background:radial-gradient(circle at 30% 30%, rgba(214,178,94,.18), rgba(255,255,255,.03) 45%, rgba(0,0,0,.55));
+      background:radial-gradient(circle at 30% 30%, rgba(214,178,94,.16), rgba(255,255,255,.03) 45%, rgba(0,0,0,.55));
       border:1px solid rgba(214,178,94,.35);
-      box-shadow: 0 25px 70px rgba(0,0,0,.55);
+      box-shadow: 0 22px 60px rgba(0,0,0,.55);
       overflow:hidden;
     }
+
     .ring:before{
       content:"";
       position:absolute; inset:10%;
       border-radius:50%;
       background:
-        repeating-conic-gradient(from 0deg,
+        repeating-conic-gradient(
+          from 0deg,
           rgba(214,178,94,.22) 0deg 1deg,
-          transparent 1deg 8deg
+          transparent 1deg 10deg
         );
-      opacity:.32;
-      mask: radial-gradient(circle, transparent 0 60%, black 62% 100%);
+      opacity:.30;
+      mask: radial-gradient(circle, transparent 0 62%, black 64% 100%);
       pointer-events:none;
     }
 
@@ -134,11 +184,10 @@
       opacity:.85;
       font-weight:950;
       font-size:13px;
-      letter-spacing:.6px;
+      letter-spacing:.8px;
       color:rgba(243,244,246,.78);
       text-shadow:0 4px 14px rgba(0,0,0,.6);
       user-select:none;
-      z-index:7;
     }
     .n{ top:12px; color:rgba(255,221,138,.95); opacity:1; }
     .e{ right:16px; }
@@ -150,48 +199,53 @@
       width:10px; height:10px;
       transform:translate(-50%,-50%);
       border-radius:50%;
-      background:radial-gradient(circle, rgba(255,221,138,1), rgba(214,178,94,.25));
+      background:radial-gradient(circle, rgba(255,221,138,1), rgba(214,178,94,.22));
       box-shadow:0 0 22px rgba(214,178,94,.55);
-      z-index:8;
+      z-index:6;
     }
 
+    /* Rotating group (qibla direction) */
     .rot{
       position:absolute;
       left:50%; top:50%;
       width:0; height:0;
       transform:translate(-50%,-50%) rotate(0deg);
       transform-origin:50% 50%;
-      transition:transform .16s ease-out;
-      z-index:6;
+      transition:transform .14s ease-out;
+      z-index:5;
     }
 
-    .needle{
+    /* Needle stem from center */
+    .stem{
       position:absolute;
       left:50%; top:50%;
       width:10px;
-      height:132px;
-      transform:translate(-50%,-100%);
+      height:126px;
+      transform:translate(-50%,-86%);
       border-radius:12px;
-      background:linear-gradient(180deg, rgba(255,221,138,.95), rgba(214,178,94,.25));
+      background:linear-gradient(180deg, rgba(255,221,138,.95), rgba(214,178,94,.18));
       box-shadow:0 16px 25px rgba(0,0,0,.45);
     }
-    .tail{
+    .stem:after{
+      content:"";
       position:absolute;
-      left:50%; top:50%;
+      left:50%;
+      bottom:-40px;
       width:8px;
-      height:52px;
-      transform:translate(-50%, 0%);
+      height:44px;
+      transform:translateX(-50%);
       border-radius:12px;
       background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.55));
       border:1px solid rgba(255,255,255,.08);
       box-shadow:0 10px 18px rgba(0,0,0,.55);
     }
 
+    /* Qibla arrow head at outer ring */
     .qHead{
       position:absolute;
       left:50%; top:50%;
       width:0; height:0;
-      transform:translate(-50%,-170px);
+      transform:translate(-50%,-166px);
       border-left:16px solid transparent;
       border-right:16px solid transparent;
       border-bottom:34px solid rgba(34,197,94,.95);
@@ -218,364 +272,380 @@
       user-select:none;
     }
 
-    /* ✅ MINI WORLD MAP */
-    .miniMap{
+    /* Countdown overlay inside compass */
+    .overlayCount{
       position:absolute;
-      left:14px;
-      bottom:14px;
-      width:92px;
-      height:92px;
-      border-radius:50%;
-      border:1px solid rgba(214,178,94,.35);
-      box-shadow:0 16px 35px rgba(0,0,0,.55);
-      overflow:hidden;
-      background:radial-gradient(circle at 30% 30%, rgba(255,221,138,.10), rgba(0,0,0,.75));
-      z-index:9;
-      backdrop-filter: blur(6px);
+      left:50%; top:50%;
+      transform:translate(-50%,-50%);
+      padding:8px 10px;
+      border-radius:14px;
+      border:1px solid rgba(214,178,94,.22);
+      background:rgba(0,0,0,.35);
+      font-weight:950;
+      color:rgba(255,221,138,.95);
+      display:none;
+      z-index:7;
+      min-width:170px;
+      text-align:center;
+      backdrop-filter: blur(8px);
     }
-    .miniMap:after{
-      content:"";
-      position:absolute; inset:0;
-      border-radius:50%;
-      box-shadow: inset 0 0 0 2px rgba(255,221,138,.10);
-      pointer-events:none;
-    }
-    .miniLabel{
-      position:absolute;
-      left:14px;
-      bottom:112px;
-      font-size:11px;
-      color:rgba(255,221,138,.85);
-      font-weight:900;
-      letter-spacing:.2px;
-      text-shadow:0 6px 16px rgba(0,0,0,.7);
-      z-index:10;
-      user-select:none;
-    }
+    .overlayCount.show{ display:block; }
 
-    .bottom{
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border:1px solid rgba(214,178,94,.25);
-      border-radius:16px;
-      padding:12px;
+    .info{
+      margin-top:6px;
       display:flex;
       flex-direction:column;
       gap:6px;
-      box-shadow:0 18px 50px rgba(0,0,0,.35);
-      backdrop-filter: blur(10px);
       position:relative;
-      overflow:hidden;
+      z-index:1;
     }
-    .bottom:before{
-      content:"";
-      position:absolute; left:-25%; right:-25%; bottom:-26px; height:78px;
-      background:
-        radial-gradient(circle at 20% 30%, rgba(214,178,94,.30), transparent 55%),
-        radial-gradient(circle at 80% 40%, rgba(34,197,94,.20), transparent 60%),
-        linear-gradient(90deg, rgba(214,178,94,.26), rgba(255,221,138,.12), rgba(34,197,94,.14));
-      transform:skewX(-10deg);
-      opacity:.62;
-      pointer-events:none;
-    }
-    .bottom:after{
-      content:"";
-      position:absolute; left:10px; right:10px; bottom:10px; height:2px;
-      background:linear-gradient(90deg, transparent, rgba(255,221,138,.55), rgba(214,178,94,.35), transparent);
-      opacity:.65;
-      pointer-events:none;
-    }
+    .txt{ font-size:14px; font-weight:950; letter-spacing:.2px; }
+    .warn{ color:var(--warn); font-size:13px; line-height:1.35; }
+    .okmsg{ color:#b7ffcf; font-size:13px; font-weight:850; }
 
-    .txt{ font-size:14px; font-weight:950; letter-spacing:.2px; position:relative; z-index:1; }
-    .warn{ color:var(--warn); font-size:13px; line-height:1.35; position:relative; z-index:1; }
-    .hint2{ font-size:12.5px; color:var(--muted); line-height:1.35; position:relative; z-index:1; }
+    /* Toast */
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom: calc(90px + env(safe-area-inset-bottom));
+      transform:translateX(-50%);
+      background:rgba(0,0,0,.55);
+      border:1px solid rgba(34,197,94,.28);
+      color:#b7ffcf;
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:950;
+      box-shadow:0 16px 50px rgba(0,0,0,.55);
+      backdrop-filter: blur(10px);
+      display:none;
+      pointer-events:none;
+      z-index:999;
+    }
+    .toast.show{ display:block; }
   </style>
 </head>
 
 <body>
-  <div class="app">
+  <div id="map"></div>
 
-    <div class="top">
+  <div class="ui">
+    <div class="topCard">
       <div class="row">
-        <button id="startBtn" class="btn">Başlat (Sensör İzni)</button>
-        <div id="stateChip" class="chip">Bekliyor…</div>
+        <div class="version">Sürüm: MAPS-01</div>
+        <div id="chip" class="chip">Bekliyor…</div>
       </div>
 
-      <div class="version">Sürüm: GOLD-MAP-1</div>
-      <div id="countdown" class="count">Yön belirleniyor… 5</div>
+      <button id="startBtn" class="btn">Başlat (Sensör izni)</button>
+
+      <div id="countdownTop" class="count">Yön belirleniyor… 5</div>
 
       <div class="hint">
         iPhone’da pusula sensörü sadece <b>butona bastıktan sonra</b> açılır.
+        Harita için konum izni de gerekebilir.
       </div>
     </div>
 
-    <div class="mid">
-      <div class="midWrap">
-
+    <div class="sheet">
+      <div class="compassWrap">
         <div class="ring">
           <div class="label n">N</div><div class="label e">E</div><div class="label s">S</div><div class="label w">W</div>
           <div class="centerDot"></div>
 
+          <div id="overlayCount" class="overlayCount">Yön belirleniyor… 5</div>
+
           <div id="rot" class="rot">
-            <div class="needle"></div>
-            <div class="tail"></div>
+            <div class="stem"></div>
             <div class="qHead"></div>
             <div class="kaaba">🕋</div>
           </div>
         </div>
+      </div>
 
-        <div class="miniLabel">Dünya</div>
-
-        <!-- Mini world map (SVG) -->
-        <div class="miniMap">
-          <svg id="miniSvg" viewBox="0 0 360 180" width="100%" height="100%" preserveAspectRatio="none">
-            <!-- Ocean tint -->
-            <rect x="0" y="0" width="360" height="180" fill="rgba(0,0,0,.55)"></rect>
-
-            <!-- Simple grid -->
-            <g opacity="0.25" stroke="rgba(255,221,138,.35)" stroke-width="1">
-              <path d="M0,90 H360" />
-              <path d="M180,0 V180" />
-              <path d="M0,45 H360" />
-              <path d="M0,135 H360" />
-              <path d="M90,0 V180" />
-              <path d="M270,0 V180" />
-            </g>
-
-            <!-- Very simplified continents (premium silhouette) -->
-            <g fill="rgba(34,197,94,.18)" stroke="rgba(255,221,138,.18)" stroke-width="1">
-              <!-- Americas -->
-              <path d="M55,35
-                       C35,45 30,70 40,85
-                       C48,98 45,120 58,135
-                       C70,150 85,150 95,136
-                       C105,122 98,108 92,96
-                       C85,80 95,65 92,52
-                       C88,40 72,30 55,35 Z"/>
-              <!-- Greenland -->
-              <path d="M95,18 C88,16 82,20 84,28 C86,36 98,34 102,26 C105,20 101,18 95,18 Z"/>
-              <!-- Afro-Eurasia -->
-              <path d="M155,35
-                       C175,25 210,28 230,40
-                       C245,48 262,46 275,58
-                       C290,72 285,88 270,94
-                       C250,102 242,110 235,122
-                       C225,140 205,150 192,142
-                       C178,132 176,115 170,104
-                       C162,92 150,88 142,78
-                       C130,62 135,42 155,35 Z"/>
-              <!-- Australia -->
-              <path d="M275,125
-                       C288,120 305,124 314,134
-                       C322,144 314,155 300,156
-                       C286,157 272,144 275,125 Z"/>
-              <!-- Madagascar-ish -->
-              <path d="M230,122 C236,122 240,128 238,134 C236,140 230,140 228,134 C226,128 228,122 230,122 Z"/>
-            </g>
-
-            <!-- Line + points -->
-            <g>
-              <line id="miniLine" x1="0" y1="0" x2="0" y2="0"
-                    stroke="rgba(255,221,138,.85)" stroke-width="2" opacity="0.9"/>
-              <circle id="miniUser" cx="0" cy="0" r="4.5" fill="rgba(34,197,94,.95)" stroke="rgba(255,221,138,.75)" stroke-width="1"/>
-              <circle id="miniKaaba" cx="0" cy="0" r="4.5" fill="rgba(255,221,138,.95)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
-            </g>
-          </svg>
-        </div>
-
+      <div class="info">
+        <div id="bearingTxt" class="txt">Kıble: --°</div>
+        <div id="warn" class="warn"></div>
+        <div class="okmsg">İpucu: En doğru ölçüm için telefonu düz tut, metal/mıknatıs etkisi yapabilecek şeylerden uzak dur.</div>
       </div>
     </div>
-
-    <div class="bottom">
-      <div id="bearingTxt" class="txt">Kıble: --°</div>
-      <div id="warn" class="warn"></div>
-      <div class="hint2">İpucu: En doğru ölçüm için telefonu düz tut, metal/ mıknatıs etkisi yapabilecek şeylerden uzak dur.</div>
-    </div>
-
   </div>
 
-<script>
-  const KAABA = { latDeg: 21.4225, lonDeg: 39.8262, lat: 21.4225 * Math.PI/180, lon: 39.8262 * Math.PI/180 };
+  <div id="toast" class="toast">Kıble yönü bulundu! ✅</div>
 
-  const warn = document.getElementById('warn');
-  const bearingTxt = document.getElementById('bearingTxt');
-  const rot = document.getElementById('rot');
-  const startBtn = document.getElementById('startBtn');
-  const stateChip = document.getElementById('stateChip');
-  const countdownEl = document.getElementById('countdown');
+  <!-- Google Maps: BURADA KEY'İ YAZ -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDDF6r7xLgQEip2Kkn0gAGqvOJBbjTOml8&v=weekly"></script>
 
-  // mini map elements
-  const miniLine = document.getElementById('miniLine');
-  const miniUser = document.getElementById('miniUser');
-  const miniKaaba = document.getElementById('miniKaaba');
+  <script>
+    // ====== Kaaba ======
+    const KAABA_LATLNG = { lat: 21.4225, lng: 39.8262 };
 
-  let qiblaBearing = null;
-  let compassStarted = false;
+    // ====== UI refs ======
+    const chip = document.getElementById('chip');
+    const startBtn = document.getElementById('startBtn');
+    const warnEl = document.getElementById('warn');
+    const bearingTxt = document.getElementById('bearingTxt');
+    const rot = document.getElementById('rot');
 
-  let countdownTimer = null;
-  let countdownValue = 0;
-  let countdownStartMs = 0;
+    const countdownTop = document.getElementById('countdownTop');
+    const overlayCount = document.getElementById('overlayCount');
+    const toast = document.getElementById('toast');
 
-  function setState(t, ok=false){
-    stateChip.textContent = t;
-    stateChip.classList.toggle('ok', ok);
-  }
+    // ====== State ======
+    let map, userMarker, kaabaMarker, line;
+    let userLatLng = null;
+    let qiblaBearing = null;
 
-  function showCountdown(){
-    clearInterval(countdownTimer);
-    countdownStartMs = Date.now();
-    countdownValue = 5;
-    countdownEl.textContent = `Yön belirleniyor… ${countdownValue}`;
-    countdownEl.classList.add('show');
+    let compassStarted = false;
+    let gotFirstHeading = false;
+    let smooth = 0;
 
-    countdownTimer = setInterval(() => {
-      countdownValue -= 1;
-      if (countdownValue <= 0){
-        clearInterval(countdownTimer);
-        countdownEl.textContent = 'Yön belirleniyor…';
-        return;
-      }
-      countdownEl.textContent = `Yön belirleniyor… ${countdownValue}`;
-    }, 1000);
-  }
+    let countdownTimer = null;
+    let countdownValue = 0;
 
-  function hideCountdownRespectMinTime(){
-    const elapsed = Date.now() - countdownStartMs;
-    const wait = Math.max(0, 3000 - elapsed);
-    setTimeout(() => {
-      clearInterval(countdownTimer);
-      countdownEl.classList.remove('show');
-    }, wait);
-  }
-
-  function bearingToKaaba(lat, lon) {
-    const φ1 = lat * Math.PI/180, λ1 = lon * Math.PI/180;
-    const y = Math.sin(KAABA.lon - λ1) * Math.cos(KAABA.lat);
-    const x = Math.cos(φ1)*Math.sin(KAABA.lat) - Math.sin(φ1)*Math.cos(KAABA.lat)*Math.cos(KAABA.lon - λ1);
-    let θ = Math.atan2(y, x) * 180/Math.PI;
-    return (θ + 360) % 360;
-  }
-
-  // Mini map projection (equirectangular)
-  function proj(latDeg, lonDeg){
-    const x = (lonDeg + 180) / 360 * 360;
-    const y = (90 - latDeg) / 180 * 180;
-    return {x, y};
-  }
-
-  function updateMiniMap(userLatDeg, userLonDeg){
-    const u = proj(userLatDeg, userLonDeg);
-    const k = proj(KAABA.latDeg, KAABA.lonDeg);
-
-    miniUser.setAttribute('cx', u.x);
-    miniUser.setAttribute('cy', u.y);
-
-    miniKaaba.setAttribute('cx', k.x);
-    miniKaaba.setAttribute('cy', k.y);
-
-    miniLine.setAttribute('x1', u.x);
-    miniLine.setAttribute('y1', u.y);
-    miniLine.setAttribute('x2', k.x);
-    miniLine.setAttribute('y2', k.y);
-  }
-
-  function requestLocation() {
-    warn.textContent = 'Konum isteniyor...';
-    setState('Konum…');
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-
-        qiblaBearing = bearingToKaaba(lat, lon);
-        bearingTxt.textContent = `Kıble: ${Math.round(qiblaBearing)}°`;
-
-        // update mini map
-        updateMiniMap(lat, lon);
-
-        warn.textContent = compassStarted ? '' : 'Şimdi “Başlat (Sensör İzni)” butonuna bas.';
-        setState(compassStarted ? 'Hazır ✅' : 'Konum hazır ✅', true);
-
-        if (compassStarted) showCountdown();
-      },
-      () => {
-        warn.textContent = 'Konum izni verin. (iPhone: Ayarlar > Gizlilik ve Güvenlik > Konum Servisleri)';
-        setState('Konum yok');
-      },
-      { enableHighAccuracy:true, timeout:10000 }
-    );
-  }
-
-  let smooth = 0;
-  function setRotation(deg) {
-    smooth = smooth + 0.18 * (deg - smooth);
-    rot.style.transform = `translate(-50%,-50%) rotate(${smooth}deg)`;
-  }
-
-  let gotFirstHeading = false;
-
-  function handleOrientation(e) {
-    if (qiblaBearing == null) return;
-
-    let heading = null;
-    if (typeof e.webkitCompassHeading === 'number') heading = e.webkitCompassHeading;
-    else if (typeof e.alpha === 'number') heading = 360 - e.alpha;
-
-    if (heading == null) return;
-
-    const rotateDeg = (qiblaBearing - heading + 360) % 360;
-    setRotation(rotateDeg);
-
-    if (!gotFirstHeading){
-      gotFirstHeading = true;
-      hideCountdownRespectMinTime();
-      setState('Çalışıyor ✅', true);
-      warn.textContent = '';
+    function setChip(text, mode='normal'){
+      chip.textContent = text;
+      chip.classList.remove('ok','bad');
+      if (mode === 'ok') chip.classList.add('ok');
+      if (mode === 'bad') chip.classList.add('bad');
     }
-  }
 
-  async function startCompass() {
-    gotFirstHeading = false;
-    compassStarted = false;
-    setState('İzin…');
+    function showToastOnce(){
+      toast.classList.add('show');
+      setTimeout(()=> toast.classList.remove('show'), 2200);
+    }
 
-    showCountdown();
+    function showCountdown(){
+      clearInterval(countdownTimer);
+      countdownValue = 5;
 
-    if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function') {
-      try {
-        const p = await DeviceOrientationEvent.requestPermission();
-        if (p !== 'granted') {
+      countdownTop.textContent = `Yön belirleniyor… ${countdownValue}`;
+      overlayCount.textContent = `Yön belirleniyor… ${countdownValue}`;
+
+      countdownTop.classList.add('show');
+      overlayCount.classList.add('show');
+
+      countdownTimer = setInterval(() => {
+        countdownValue -= 1;
+        if (countdownValue <= 0){
           clearInterval(countdownTimer);
-          countdownEl.classList.remove('show');
-          warn.textContent = 'Pusula izni verilmedi. iPhone: Ayarlar > Safari > Hareket ve Yön Erişimi açık olmalı.';
-          setState('İzin yok');
+          countdownTop.textContent = 'Yön belirleniyor…';
+          overlayCount.textContent = 'Yön belirleniyor…';
           return;
         }
-      } catch {
-        clearInterval(countdownTimer);
-        countdownEl.classList.remove('show');
-        warn.textContent = 'Pusula izni alınamadı. Safari sensör erişimi kapalı olabilir.';
-        setState('İzin yok');
-        return;
+        countdownTop.textContent = `Yön belirleniyor… ${countdownValue}`;
+        overlayCount.textContent = `Yön belirleniyor… ${countdownValue}`;
+      }, 1000);
+    }
+
+    function hideCountdown(){
+      clearInterval(countdownTimer);
+      countdownTop.classList.remove('show');
+      overlayCount.classList.remove('show');
+    }
+
+    // ====== Math: bearing to Kaaba ======
+    function bearingToKaaba(lat, lng) {
+      const φ1 = lat * Math.PI/180;
+      const λ1 = lng * Math.PI/180;
+      const φ2 = KAABA_LATLNG.lat * Math.PI/180;
+      const λ2 = KAABA_LATLNG.lng * Math.PI/180;
+
+      const y = Math.sin(λ2 - λ1) * Math.cos(φ2);
+      const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(λ2 - λ1);
+      let θ = Math.atan2(y, x) * 180/Math.PI;
+      return (θ + 360) % 360;
+    }
+
+    // ====== Smooth rotation ======
+    function setRotation(deg) {
+      smooth = smooth + 0.18 * (deg - smooth);
+      rot.style.transform = `translate(-50%,-50%) rotate(${smooth}deg)`;
+    }
+
+    // ====== Compass handler ======
+    function getHeadingFromEvent(e){
+      // iOS Safari provides webkitCompassHeading (best)
+      if (typeof e.webkitCompassHeading === 'number') return e.webkitCompassHeading;
+      // Other browsers: alpha is 0..360 (needs invert)
+      if (typeof e.alpha === 'number') return (360 - e.alpha);
+      return null;
+    }
+
+    function handleOrientation(e) {
+      if (qiblaBearing == null) return;
+
+      const heading = getHeadingFromEvent(e);
+      if (heading == null) return;
+
+      const rotateDeg = (qiblaBearing - heading + 360) % 360;
+      setRotation(rotateDeg);
+
+      if (!gotFirstHeading){
+        gotFirstHeading = true;
+        hideCountdown();
+        setChip('Pusula çalışıyor ✅', 'ok');
+        warnEl.textContent = '';
+        showToastOnce();
       }
     }
 
-    window.addEventListener('deviceorientation', handleOrientation, true);
-    compassStarted = true;
+    // ====== Location ======
+    function updateQiblaFromLocation(latlng){
+      userLatLng = latlng;
+      qiblaBearing = bearingToKaaba(latlng.lat, latlng.lng);
+      bearingTxt.textContent = `Kıble: ${Math.round(qiblaBearing)}°`;
 
-    startBtn.disabled = true;
-    startBtn.textContent = 'Sensör Açık ✅';
+      // Map updates
+      if (map){
+        if (!userMarker){
+          userMarker = new google.maps.Marker({
+            position: userLatLng,
+            map,
+            title: 'Sen',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 7,
+              fillColor: '#22c55e',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2
+            }
+          });
+        } else {
+          userMarker.setPosition(userLatLng);
+        }
 
-    warn.textContent = (qiblaBearing == null)
-      ? 'Konum izni gerekli. Lütfen konum izni ver.'
-      : 'Yön belirleniyor…';
+        if (!kaabaMarker){
+          kaabaMarker = new google.maps.Marker({
+            position: KAABA_LATLNG,
+            map,
+            title: 'Kâbe 🕋'
+          });
+        }
 
-    setState('Başlatıldı…');
-  }
+        if (!line){
+          line = new google.maps.Polyline({
+            map,
+            path: [userLatLng, KAABA_LATLNG],
+            geodesic: true,
+            strokeColor: '#22c55e',
+            strokeOpacity: 0.95,
+            strokeWeight: 4
+          });
+        } else {
+          line.setPath([userLatLng, KAABA_LATLNG]);
+        }
+      }
 
-  startBtn.addEventListener('click', startCompass);
-  requestLocation();
-</script>
+      if (compassStarted){
+        showCountdown();
+        warnEl.textContent = 'Yön belirleniyor…';
+        setChip('Konum hazır ✅', 'ok');
+      } else {
+        warnEl.textContent = 'Şimdi “Başlat (Sensör izni)” butonuna bas.';
+        setChip('Konum hazır ✅', 'ok');
+      }
+    }
+
+    function requestLocation(){
+      if (!navigator.geolocation){
+        warnEl.textContent = 'Bu cihaz konum desteklemiyor.';
+        setChip('Konum yok', 'bad');
+        return;
+      }
+
+      warnEl.textContent = 'Konum alınıyor…';
+      setChip('Konum alınıyor…');
+
+      // Watch gives better stability for map/line
+      navigator.geolocation.watchPosition(
+        (pos) => {
+          const latlng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          updateQiblaFromLocation(latlng);
+
+          // Center map first time
+          if (map && map.__centered !== true){
+            map.setCenter(latlng);
+            map.setZoom(16);
+            map.__centered = true;
+          }
+        },
+        () => {
+          warnEl.textContent = 'Konum izni ver. (iPhone: Ayarlar > Gizlilik ve Güvenlik > Konum Servisleri)';
+          setChip('Konum izni yok', 'bad');
+        },
+        { enableHighAccuracy:true, timeout:15000, maximumAge: 2000 }
+      );
+    }
+
+    // ====== Google Map init ======
+    function initMap(){
+      try{
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: KAABA_LATLNG,
+          zoom: 3,
+          mapTypeId: 'satellite',
+          disableDefaultUI: true,
+          clickableIcons: false,
+          gestureHandling: 'greedy'
+        });
+      } catch (e){
+        // If Maps key is wrong or blocked, show a clear message
+        warnEl.textContent = 'Harita açılmadı. API key veya kısıtlar kontrol edilmeli.';
+        setChip('Harita yok', 'bad');
+      }
+    }
+
+    // ====== Start button ======
+    async function startCompass(){
+      gotFirstHeading = false;
+      compassStarted = false;
+
+      setChip('İzin isteniyor…');
+      showCountdown();
+
+      // iOS permission gate
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const p = await DeviceOrientationEvent.requestPermission();
+          if (p !== 'granted') {
+            hideCountdown();
+            warnEl.textContent = 'Pusula izni verilmedi. iPhone: Ayarlar > Safari > Hareket ve Yön Erişimi açık olmalı.';
+            setChip('İzin yok', 'bad');
+            return;
+          }
+        } catch {
+          hideCountdown();
+          warnEl.textContent = 'Pusula izni alınamadı. Safari sensör erişimi kapalı olabilir.';
+          setChip('İzin yok', 'bad');
+          return;
+        }
+      }
+
+      window.addEventListener('deviceorientation', handleOrientation, true);
+      window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+
+      compassStarted = true;
+      startBtn.disabled = true;
+      startBtn.textContent = 'Sensör Açık ✅';
+
+      // If location not ready yet:
+      if (qiblaBearing == null){
+        warnEl.textContent = 'Konum izni gerekli. Lütfen konum izni ver.';
+        setChip('Konum bekleniyor…');
+        requestLocation(); // try again after user gesture
+      } else {
+        warnEl.textContent = 'Yön belirleniyor…';
+        setChip('Başlatıldı…');
+      }
+    }
+
+    // ====== Boot ======
+    startBtn.addEventListener('click', startCompass);
+
+    // Map first, then location
+    initMap();
+    requestLocation();
+  </script>
 </body>
 </html>
